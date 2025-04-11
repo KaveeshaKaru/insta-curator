@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server"
-import { getToken } from "next-auth/jwt"
 import type { NextRequest } from "next/server"
 
 export async function middleware(request: NextRequest) {
@@ -8,11 +7,11 @@ export async function middleware(request: NextRequest) {
   // Check if the route is a dashboard route
   const isDashboardRoute = pathname.startsWith("/dashboard")
 
-  // Get the token from the request
-  const token = await getToken({ req: request })
+  // Get the authentication status from the request headers
+  const isAuthenticated = request.cookies.get("isAuthenticated")?.value === "true"
 
   // If trying to access dashboard without being logged in, redirect to home
-  if (isDashboardRoute && !token) {
+  if (isDashboardRoute && !isAuthenticated) {
     return NextResponse.redirect(new URL("/", request.url))
   }
 

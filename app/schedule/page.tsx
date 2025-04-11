@@ -1,20 +1,18 @@
 "use client"
 
 import { useState } from "react"
-import { CalendarIcon, Clock } from "lucide-react"
+import { Clock } from "lucide-react"
 import Image from "next/image"
 
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent } from "@/components/ui/card"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
-import { format } from "date-fns"
 
+// Simplified version without date-fns and Calendar component
 export default function SchedulePage() {
-  const [date, setDate] = useState<Date>()
+  const [selectedDate, setSelectedDate] = useState("")
   const [selectedImage, setSelectedImage] = useState<number | null>(null)
   const [selectedSeries, setSelectedSeries] = useState<string>("")
 
@@ -75,20 +73,13 @@ export default function SchedulePage() {
           <div>
             <h2 className="text-xl font-semibold mb-4">4. Schedule Date & Time</h2>
             <div className="grid gap-4">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, "PPP") : "Select date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar mode="single" selected={date} onSelect={setDate} initialFocus />
-                </PopoverContent>
-              </Popover>
+              {/* Simplified date input */}
+              <input
+                type="date"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+              />
 
               <div className="flex space-x-2">
                 <Select>
@@ -162,7 +153,7 @@ export default function SchedulePage() {
 
                 <div className="flex items-center space-x-2 text-sm">
                   <Clock className="w-4 h-4" />
-                  <span>{date ? format(date, "PPP") : "Not scheduled yet"}</span>
+                  <span>{selectedDate || "Not scheduled yet"}</span>
                 </div>
               </CardContent>
             </Card>
@@ -177,4 +168,3 @@ export default function SchedulePage() {
     </div>
   )
 }
-

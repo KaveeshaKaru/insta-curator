@@ -12,7 +12,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <Button asChild>
-          <Link href="/dashboard/schedule">Schedule New Post</Link>
+          <Link href="/schedule">Schedule New Post</Link>
         </Button>
       </div>
 
@@ -66,7 +66,7 @@ export default function DashboardPage() {
             <TabsTrigger value="recent">Recently Posted</TabsTrigger>
           </TabsList>
           <Button variant="outline" size="sm" asChild>
-            <Link href="/dashboard/schedule">View All</Link>
+            <Link href="/schedule">View All</Link>
           </Button>
         </div>
 
@@ -133,4 +133,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-

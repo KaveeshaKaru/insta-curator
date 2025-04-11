@@ -2,8 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { signOut, useSession } from "next-auth/react"
-import { Calendar, Compass, Grid3X3, Home, Image, Instagram, LogOut, Settings, User } from "lucide-react"
+import { Calendar, Grid3X3, Home, Image, Instagram, LogOut, Settings, User } from "lucide-react"
 
 import {
   Sidebar,
@@ -20,7 +19,6 @@ import { Button } from "@/components/ui/button"
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { data: session } = useSession()
 
   const menuItems = [
     {
@@ -29,35 +27,26 @@ export function AppSidebar() {
       icon: Home,
     },
     {
-      title: "Discover",
-      href: "/dashboard/discover",
-      icon: Compass,
-    },
-    {
       title: "Images",
-      href: "/dashboard/images",
+      href: "/images",
       icon: Image,
     },
     {
       title: "Series",
-      href: "/dashboard/series",
+      href: "/series",
       icon: Grid3X3,
     },
     {
       title: "Schedule",
-      href: "/dashboard/schedule",
+      href: "/schedule",
       icon: Calendar,
     },
     {
       title: "Settings",
-      href: "/dashboard/settings",
+      href: "/settings",
       icon: Settings,
     },
   ]
-
-  const handleSignOut = () => {
-    signOut({ callbackUrl: "/" })
-  }
 
   return (
     <Sidebar>
@@ -87,17 +76,17 @@ export function AppSidebar() {
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={session?.user?.image || "/placeholder.svg"} alt={session?.user?.name || "User"} />
+              <AvatarImage src="/placeholder.svg" alt="User" />
               <AvatarFallback>
-                {session?.user?.name ? session.user.name[0] : <User className="h-4 w-4" />}
+                <User className="h-4 w-4" />
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
-              <span className="text-sm font-medium">{session?.user?.name || "User Name"}</span>
-              <span className="text-xs text-muted-foreground">{session?.user?.email || "@username"}</span>
+              <span className="text-sm font-medium">User Name</span>
+              <span className="text-xs text-muted-foreground">@username</span>
             </div>
           </div>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleSignOut}>
+          <Button variant="ghost" size="icon" className="h-8 w-8">
             <LogOut className="h-4 w-4" />
             <span className="sr-only">Log out</span>
           </Button>
@@ -106,4 +95,3 @@ export function AppSidebar() {
     </Sidebar>
   )
 }
-

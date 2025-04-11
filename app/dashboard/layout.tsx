@@ -1,7 +1,6 @@
 import type React from "react"
 import { redirect } from "next/navigation"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "../api/[...nextauth]/route"
+import { cookies } from "next/headers"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 
@@ -10,9 +9,10 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const session = await getServerSession(authOptions)
+  const cookieStore = await cookies()
+  const isAuthenticated = cookieStore.get("isAuthenticated")?.value === "true"
 
-  if (!session) {
+  if (!isAuthenticated) {
     redirect("/")
   }
 
