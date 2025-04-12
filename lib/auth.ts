@@ -1,23 +1,17 @@
-// Simple authentication system
-const ADMIN_USERNAME = "Admin"
-const ADMIN_PASSWORD = "12345"
+import { betterAuth } from 'better-auth';
+import { prismaAdapter } from 'better-auth/adapters/prisma';
+import { PrismaClient } from '@prisma/client';
 
-export async function getSession() {
-  // This is a mock session that will be used for development
-  return {
-    user: {
-      name: ADMIN_USERNAME,
-      email: "admin@example.com",
-      image: null
-    }
-  }
-}
-
-export async function getCurrentUser() {
-  const session = await getSession()
-  return session?.user || null
-}
-
-export function validateCredentials(username: string, password: string) {
-  return username === ADMIN_USERNAME && password === ADMIN_PASSWORD
-}
+const prisma = new PrismaClient();
+export const auth = betterAuth({
+  database: prismaAdapter(prisma, {
+    provider: 'postgresql',
+  }),
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      prompt: 'login',
+    },
+  },
+});

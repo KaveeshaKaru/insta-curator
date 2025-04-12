@@ -9,12 +9,12 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const cookieStore = await cookies()
-  const isAuthenticated = cookieStore.get("isAuthenticated")?.value === "true"
+  // const cookieStore = await cookies()
+  // const isAuthenticated = cookieStore.get("isAuthenticated")?.value === "true"
 
-  if (!isAuthenticated) {
-    redirect("/")
-  }
+  // if (!isAuthenticated) {
+  //   redirect("/")
+  // }
 
   return (
     <SidebarProvider>
