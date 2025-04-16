@@ -1,5 +1,6 @@
 import { createAuthClient } from 'better-auth/react';
 export const { signIn, signUp, signOut, useSession } = createAuthClient({
   /** the base url of the server (optional if you're using the same domain) */
-  baseURL: 'http://localhost:3000',
+  // baseURL: 'http://localhost:3000',
+  baseURL: 'https://insta-curator.vercel.app',
 });
