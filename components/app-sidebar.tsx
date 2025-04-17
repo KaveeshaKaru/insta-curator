@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Calendar, Grid3X3, Home, Image, Instagram, LogOut, Settings, User } from "lucide-react"
+import { Calendar, Grid3X3, Home, Image, Instagram, LogOut, Settings, User ,FileTerminal,Handshake } from "lucide-react"
 
 import {
   Sidebar,
@@ -46,6 +46,16 @@ export function AppSidebar() {
       href: "/settings",
       icon: Settings,
     },
+    {
+      title: "Privacy Policy",
+      href: "/privacy-policy",
+      icon: FileTerminal,
+    },
+    {
+      title: "Terms of Service",
+      href: "/terms",
+      icon: Handshake,
+    },
   ]
 
   return (
@@ -53,7 +63,7 @@ export function AppSidebar() {
       <SidebarHeader className="flex flex-col items-center justify-center py-6">
         <div className="flex items-center gap-2 px-2">
           <Instagram className="h-6 w-6" />
-          <h1 className="text-xl font-bold">Curator</h1>
+          <h1 className="text-xl font-bold">iCurator</h1>
         </div>
       </SidebarHeader>
       <SidebarSeparator />

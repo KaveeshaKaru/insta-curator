@@ -1,3 +1,5 @@
+"use client"
+
 import { Instagram } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -6,8 +8,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
+import { useSearchParams } from "next/navigation"
+
 
 export default function SettingsPage() {
+  const searchParams = useSearchParams()
+  const isConnected = searchParams.get("connected") === "true"
+  const igId = searchParams.get("ig_id")
+
   return (
     <div className="flex flex-col p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -47,9 +55,13 @@ export default function SettingsPage() {
               </div>
               <div className="flex-1">
                 <h3 className="font-medium">Instagram Business Account</h3>
-                <p className="text-sm text-muted-foreground">Not connected</p>
+                <p className={`text-sm ${isConnected ? "text-green-600" : "text-muted-foreground"}`}>
+                  {isConnected ? `Connected (ID: ${igId})` : "Not connected"}
+                </p>
               </div>
-              <Button>Connect</Button>
+              <Button onClick={() => window.location.href = "/api/auth/instagram-login"}>
+                {isConnected ? "Reconnect" : "Connect"}
+              </Button>
             </div>
 
             <div className="space-y-2">
