@@ -1,21 +1,14 @@
-"use client"
-
-import { Instagram } from "lucide-react"
-
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { Switch } from "@/components/ui/switch"
-import { useSearchParams } from "next/navigation"
-
+// settings/page.tsx
+import { Suspense } from "react";
+import InstagramConnection from "@/components/InstagramConnection";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 
 export default function SettingsPage() {
-  const searchParams = useSearchParams()
-  const isConnected = searchParams.get("connected") === "true"
-  const igId = searchParams.get("ig_id")
-
   return (
     <div className="flex flex-col p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -49,25 +42,9 @@ export default function SettingsPage() {
             <CardDescription>Connect your Instagram account to enable auto-posting</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center p-4 border rounded-lg">
-              <div className="mr-4">
-                <Instagram className="h-8 w-8" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-medium">Instagram Business Account</h3>
-                <p className={`text-sm ${isConnected ? "text-green-600" : "text-muted-foreground"}`}>
-                  {isConnected ? `Connected (ID: ${igId})` : "Not connected"}
-                </p>
-              </div>
-              <Button onClick={() => window.location.href = "/api/auth/instagram-login"}>
-                {isConnected ? "Reconnect" : "Connect"}
-              </Button>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="instagram-username">Instagram Username</Label>
-              <Input id="instagram-username" placeholder="@yourusername" />
-            </div>
+            <Suspense fallback={<div>Loading Instagram connection...</div>}>
+              <InstagramConnection />
+            </Suspense>
           </CardContent>
         </Card>
 
@@ -138,6 +115,5 @@ export default function SettingsPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }
-
