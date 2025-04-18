@@ -8,14 +8,14 @@ export async function GET(req: NextRequest) {
 
   if (!code) {
     console.error("No authorization code provided");
-    return NextResponse.redirect(`${process.env.BASE_URL}/settings?connected=false`);
+    return NextResponse.redirect(`${process.env.BETTER_AUTH_URL}/settings?connected=false`);
   }
 
-  const redirectUri = `${process.env.BASE_URL}/api/auth/instagram-callback`;
+  const redirectUri = `${process.env.BETTER_AUTH_URL}/api/auth/instagram-callback`;
 
   try {
     // Validate environment variables
-    if (!process.env.INSTAGRAM_APP_ID || !process.env.INSTAGRAM_APP_SECRET || !process.env.BASE_URL) {
+    if (!process.env.INSTAGRAM_APP_ID || !process.env.INSTAGRAM_APP_SECRET || !process.env.BETTER_AUTH_URL) {
       throw new Error("Missing required environment variables");
     }
 
@@ -53,10 +53,10 @@ export async function GET(req: NextRequest) {
     // Example: await db.user.update({ where: { id: userId }, data: { instagramAccessToken: accessToken, instagramBusinessAccountId: igBusinessAccount.id } });
 
     return NextResponse.redirect(
-      `${process.env.BASE_URL}/settings?connected=true&ig_id=${igBusinessAccount.id}&state=${state}`
+      `${process.env.BETTER_AUTH_URL}/settings?connected=true&ig_id=${igBusinessAccount.id}&state=${state}`
     );
   } catch (err: any) {
     console.error("OAuth Error:", err.response?.data || err.message);
-    return NextResponse.redirect(`${process.env.BASE_URL}/settings?connected=false`);
+    return NextResponse.redirect(`${process.env.BETTER_AUTH_URL}/settings?connected=false`);
   }
 }
