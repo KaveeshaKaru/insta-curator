@@ -13,16 +13,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
 model User {
-  id String @id @default(uuid())
-  name          String
-  email         String
-  emailVerified Boolean
-  image         String?
-  createdAt     DateTime
-  updatedAt     DateTime
-  sessions      Session[]
-  accounts      Account[]
+  id                        String    @id @default(uuid())
+  name                      String
+  email                     String
+  emailVerified             Boolean
+  image                     String?
+  createdAt                 DateTime
+  updatedAt                 DateTime
+  sessions                  Session[]
+  accounts                  Account[]
+  photos                    Photo[]    // Photos curated by the user
+  series                    Series[]   // Series created by the user
+  posts                     Post[]     // Scheduled posts by the user
+  instagramAccessToken      String?    // Facebook user access token
+  instagramPageAccessToken  String?    // Page-specific token for Instagram API
+  instagramBusinessAccountId String?   // Instagram Business Account ID
 
   @@unique([email])
   @@map("user")
@@ -71,4 +78,50 @@ model Verification {
   updatedAt  DateTime?
 
   @@map("verification")
+}
+
+model Photo {
+  id        Int      @id @default(autoincrement())
+  url       String   // URL of the photo (e.g., stored on a CDN or Instagram URL)
+  creator   String?  // Optional: Creator of the photo
+  caption   String?  // Optional: Caption for the photo
+  userId    String   // User who curated the photo
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  seriesId  Int?     // Optional: Series this photo belongs to
+  series    Series?  @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  posts     Post[]   // Posts that use this photo
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("photo")
+}
+
+model Series {
+  id        Int      @id @default(autoincrement())
+  name      String   // Name of the series
+  userId    String   // User who created the series
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photos    Photo[]  // Photos in this series
+  posts     Post[]   // Posts associated with this series
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("series")
+}
+
+model Post {
+  id          Int      @id @default(autoincrement())
+  userId      String   // User who scheduled the post
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photoId     Int      // Photo to be posted
+  photo       Photo    @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  seriesId    Int?     // Optional: Series this post belongs to
+  series      Series?  @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  scheduledAt DateTime // When to post
+  status      String   // "pending", "posted", "failed"
+  postedAt    DateTime? // When the post was actually made
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("post")
 }
