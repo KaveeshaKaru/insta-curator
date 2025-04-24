@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
+import prisma from "@/lib/prisma"; // Adjust path to your Prisma client
+import { auth } from "@/lib/auth"; // Adjust path to your Better Auth instance
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -11,10 +13,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${process.env.BETTER_AUTH_URL}/settings?connected=false&error=no_code`);
   }
 
+  // Get session using Better Auth's getSession
+  const session = await auth.api.getSession({ headers: req.headers });
+  if (!session?.user?.id) {
+    return NextResponse.redirect(`${process.env.BETTER_AUTH_URL}/settings?connected=false&error=unauthorized`);
+  }
+  const userId = session.user.id;
+
   const redirectUri = `${process.env.BETTER_AUTH_URL}/api/auth/instagram-callback`;
 
   try {
-    // Validate environment variables
     if (!process.env.INSTAGRAM_APP_ID || !process.env.INSTAGRAM_APP_SECRET || !process.env.BETTER_AUTH_URL) {
       throw new Error("Missing required environment variables");
     }
@@ -53,15 +61,15 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // TODO: Store tokens in database for auto-posting
-    // Example: await db.user.update({
-    //   where: { id: userId }, // Requires user authentication
-    //   data: {
-    //     instagramAccessToken: accessToken,
-    //     instagramPageAccessToken: pageAccessToken,
-    //     instagramBusinessAccountId: igBusinessAccount.id,
-    //   },
-    // });
+    // Step 4: Store tokens in database
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        instagramAccessToken: accessToken,
+        instagramPageAccessToken: pageAccessToken,
+        instagramBusinessAccountId: igBusinessAccount.id,
+      },
+    });
 
     return NextResponse.redirect(
       `${process.env.BETTER_AUTH_URL}/settings?connected=true&ig_id=${igBusinessAccount.id}&state=${state}`

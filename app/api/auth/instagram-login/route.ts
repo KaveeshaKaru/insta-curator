@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
   const authUrl = `https://www.facebook.com/v22.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(
     redirectUri
-  )}&scope=instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement&response_type=code&state=${state}`;
+  )}&scope=instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management&response_type=code&state=${state}`;
 
   console.log("Initiating OAuth with redirect URI:", redirectUri);
   return NextResponse.redirect(authUrl);
