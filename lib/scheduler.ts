@@ -17,6 +17,10 @@ class Scheduler {
     return Scheduler.instance;
   }
 
+  public getStatus(): boolean {
+    return this.isRunning;
+  }
+
   public start() {
     if (this.isRunning) {
       console.log("Scheduler is already running");
