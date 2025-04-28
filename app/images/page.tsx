@@ -146,77 +146,80 @@ export default function ImagesPage() {
   };
 
   return (
-    <div className="flex flex-col p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Post to Instagram</h1>
-      </div>
+    <div className="flex h-screen">
+      {/* Left sidebar is handled by the layout component */}
+      
+      <div className="flex-1 p-6">
+        <h1 className="text-2xl font-bold tracking-tight mb-6">Post to Instagram</h1>
 
-      {error && <p className="text-red-600">{error}</p>}
-      {success && <p className="text-green-600">{success}</p>}
+        <div className="grid gap-6 grid-cols-[1fr,350px]">
+          <div className="space-y-6">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-medium">1. Upload and Select Image</h2>
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                ref={fileInputRef}
+                onChange={handleImageUpload}
+              />
+              <Button 
+                onClick={() => fileInputRef.current?.click()} 
+                className="mb-4"
+                variant="secondary"
+              >
+                Upload Image
+              </Button>
+              <div className="grid grid-cols-3 gap-2 max-h-[500px] overflow-y-auto p-1">
+                {photos.map((photo) => (
+                  <div
+                    key={photo.id}
+                    className={cn(
+                      "relative aspect-square cursor-pointer rounded-md overflow-hidden border-2",
+                      selectedImage === photo.id ? "border-primary" : "border-transparent"
+                    )}
+                    onClick={() => setSelectedImage(photo.id)}
+                  >
+                    <Image src={photo.url} alt={photo.alt} fill className="object-cover" />
+                  </div>
+                ))}
+              </div>
+            </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-4">1. Upload and Select Image</h2>
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              ref={fileInputRef}
-              onChange={handleImageUpload}
-            />
-            <Button onClick={() => fileInputRef.current?.click()} className="mb-4">
-              Upload Image
-            </Button>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {photos.map((photo) => (
-                <div
-                  key={photo.id}
-                  className={cn(
-                    "relative aspect-square cursor-pointer rounded-md overflow-hidden border-2",
-                    selectedImage === photo.id ? "border-primary" : "border-transparent"
-                  )}
-                  onClick={() => setSelectedImage(photo.id)}
-                >
-                  <Image src={photo.url} alt={photo.alt} fill className="object-cover" />
-                </div>
-              ))}
+            <div>
+              <h2 className="text-lg font-medium mb-4">2. Select Series (Optional)</h2>
+              <Select value={selectedSeries} onValueChange={setSelectedSeries}>
+                <SelectTrigger className="w-[300px]">
+                  <SelectValue placeholder="Select a series" />
+                </SelectTrigger>
+                <SelectContent>
+                  {seriesList.map((series) => (
+                    <SelectItem key={series.id} value={series.id.toString()}>
+                      {series.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-medium mb-4">3. Write Caption</h2>
+              <Textarea
+                placeholder="Write your caption here..."
+                className="min-h-[120px] max-h-[120px] resize-none w-[600px]"
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+              />
             </div>
           </div>
 
           <div>
-            <h2 className="text-xl font-semibold mb-4">2. Select Series (Optional)</h2>
-            <Select value={selectedSeries} onValueChange={setSelectedSeries}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a series" />
-              </SelectTrigger>
-              <SelectContent>
-                {seriesList.map((series) => (
-                  <SelectItem key={series.id} value={series.id.toString()}>
-                    {series.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <h2 className="text-xl font-semibold mb-4">3. Write Caption</h2>
-            <Textarea
-              placeholder="Write your caption here..."
-              className="min-h-[120px]"
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-4">4. Preview</h2>
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2 mb-3">
+            <h2 className="text-lg font-medium mb-4">4. Preview</h2>
+            <Card className="overflow-hidden">
+              <CardContent className="p-3">
+                <div className="flex items-center space-x-2 mb-2">
                   <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
                     <Image
                       src="/placeholder.svg?height=32&width=32"
@@ -229,7 +232,7 @@ export default function ImagesPage() {
                   <span className="font-medium">your_instagram_handle</span>
                 </div>
 
-                <div className="relative aspect-square mb-3">
+                <div className="relative aspect-square mb-2">
                   {selectedImage ? (
                     <Image
                       src={photos.find(p => p.id === selectedImage)?.url || "/placeholder.svg"}
@@ -249,15 +252,22 @@ export default function ImagesPage() {
                 )}
               </CardContent>
             </Card>
-          </div>
 
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => router.push('/schedule')}>
-              Schedule Instead
-            </Button>
-            <Button onClick={handlePostNow} disabled={isPosting}>
-              {isPosting ? "Posting..." : "Post Now"}
-            </Button>
+            {(error || success) && (
+              <div className="mt-4">
+                {error && <p className="text-red-600">{error}</p>}
+                {success && <p className="text-green-600">{success}</p>}
+              </div>
+            )}
+
+            <div className="flex gap-2 mt-4">
+              <Button variant="outline" onClick={() => router.push('/schedule')} className="flex-1">
+                Schedule Instead
+              </Button>
+              <Button onClick={handlePostNow} disabled={isPosting} className="flex-1">
+                {isPosting ? "Posting..." : "Post Now"}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
