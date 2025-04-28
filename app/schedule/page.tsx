@@ -1,26 +1,143 @@
 "use client"
 
-import { useState } from "react"
-import { Clock } from "lucide-react"
+import { useState, useRef, useEffect } from "react"
+import { CalendarIcon, Clock } from "lucide-react"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
+import { format } from "date-fns"
 
 import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent } from "@/components/ui/card"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 
-// Simplified version without date-fns and Calendar component
 export default function SchedulePage() {
-  const [selectedDate, setSelectedDate] = useState("")
+  const [date, setDate] = useState<Date>()
+  const [hour, setHour] = useState<string>("")
+  const [minute, setMinute] = useState<string>("")
+  const [ampm, setAmpm] = useState<string>("")
   const [selectedImage, setSelectedImage] = useState<number | null>(null)
   const [selectedSeries, setSelectedSeries] = useState<string>("")
+  const [caption, setCaption] = useState<string>("")
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [photos, setPhotos] = useState<{ id: number; url: string; alt: string }[]>([])
+  const [seriesList, setSeriesList] = useState<{ id: number; name: string }[]>([])
+  const [isScheduling, setIsScheduling] = useState(false)
+  const router = useRouter()
 
-  const images = Array.from({ length: 8 }).map((_, i) => ({
-    id: i + 1,
-    src: `/placeholder.svg?height=200&width=200`,
-    alt: `Image ${i + 1}`,
-  }))
+  // Generate all minutes (00–59)
+  const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, "0"))
+
+  // Fetch user's series and photos on mount
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        // Fetch series
+        const seriesResponse = await fetch("/api/series")
+        const seriesData = await seriesResponse.json()
+        if (seriesData.series) {
+          setSeriesList(seriesData.series)
+        }
+
+        // Fetch photos
+        const photosResponse = await fetch("/api/photos")
+        const photosData = await photosResponse.json()
+        if (photosData.photos) {
+          setPhotos(
+            photosData.photos.map((photo: any) => ({
+              id: photo.id,
+              url: photo.url,
+              alt: photo.caption || `Photo ${photo.id}`,
+            }))
+          )
+        }
+      } catch (err) {
+        console.error("Error fetching data:", err)
+        setError("Failed to load series or photos.")
+      }
+    }
+    fetchData()
+  }, [])
+
+  const handleSchedulePost = async () => {
+    if (!selectedImage) {
+      setError("Please select an image.")
+      return
+    }
+    if (!caption.trim()) {
+      setError("Please enter a caption.")
+      return
+    }
+    if (!date) {
+      setError("Please select a date.")
+      return
+    }
+    if (!hour || !minute || !ampm) {
+      setError("Please select a time.")
+      return
+    }
+
+    setError(null)
+    setSuccess(null)
+    setIsScheduling(true)
+
+    try {
+      const photo = photos.find((p) => p.id === selectedImage)
+      if (!photo || photo.url.includes("placeholder.svg")) {
+        setError("Please select a valid image.")
+        return
+      }
+
+      // Construct scheduledAt date
+      const scheduledAt = new Date(date)
+      let hours = parseInt(hour)
+      if (ampm === "pm" && hours !== 12) hours += 12
+      if (ampm === "am" && hours === 12) hours = 0
+      scheduledAt.setHours(hours, parseInt(minute), 0, 0) // Set seconds and milliseconds to 0
+
+      // Ensure scheduled time is in the future
+      const now = new Date()
+      if (scheduledAt <= now) {
+        setError("Scheduled time must be in the future.")
+        return
+      }
+
+      const response = await fetch("/api/instagram/schedule-post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          caption,
+          imageUrl: photo.url,
+          scheduledAt: scheduledAt.toISOString(),
+          seriesId: selectedSeries || null,
+        }),
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        setSuccess("Post scheduled successfully!")
+        // Reset form
+        setCaption("")
+        setSelectedImage(null)
+        setSelectedSeries("")
+        setDate(undefined)
+        setHour("")
+        setMinute("")
+        setAmpm("")
+      } else {
+        setError(data.error || "Failed to schedule post.")
+      }
+    } catch (err) {
+      console.error("Error scheduling post:", err)
+      setError("An error occurred while scheduling the post.")
+    } finally {
+      setIsScheduling(false)
+    }
+  }
 
   return (
     <div className="flex flex-col p-6 space-y-6">
@@ -28,44 +145,53 @@ export default function SchedulePage() {
         <h1 className="text-3xl font-bold tracking-tight">Schedule Post</h1>
       </div>
 
+      {error && <p className="text-red-600">{error}</p>}
+      {success && <p className="text-green-600">{success}</p>}
+
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-6">
           <div>
             <h2 className="text-xl font-semibold mb-4">1. Select Image</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {images.map((image) => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {photos.map((photo) => (
                 <div
-                  key={image.id}
+                  key={photo.id}
                   className={cn(
                     "relative aspect-square cursor-pointer rounded-md overflow-hidden border-2",
-                    selectedImage === image.id ? "border-primary" : "border-transparent",
+                    selectedImage === photo.id ? "border-primary" : "border-transparent"
                   )}
-                  onClick={() => setSelectedImage(image.id)}
+                  onClick={() => setSelectedImage(photo.id)}
                 >
-                  <Image src={image.src || "/placeholder.svg"} alt={image.alt} fill className="object-cover" />
+                  <Image src={photo.url} alt={photo.alt} fill className="object-cover" />
                 </div>
               ))}
             </div>
           </div>
 
           <div>
-            <h2 className="text-xl font-semibold mb-4">2. Select Series</h2>
+            <h2 className="text-xl font-semibold mb-4">2. Select Series (Optional)</h2>
             <Select value={selectedSeries} onValueChange={setSelectedSeries}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a series" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="summer">Summer Collection</SelectItem>
-                <SelectItem value="product">Product Showcase</SelectItem>
-                <SelectItem value="travel">Travel Destinations</SelectItem>
-                <SelectItem value="food">Food & Recipes</SelectItem>
+                {seriesList.map((series) => (
+                  <SelectItem key={series.id} value={series.id.toString()}>
+                    {series.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
           <div>
             <h2 className="text-xl font-semibold mb-4">3. Write Caption</h2>
-            <Textarea placeholder="Write your caption here..." className="min-h-[120px]" />
+            <Textarea
+              placeholder="Write your caption here..."
+              className="min-h-[120px]"
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+            />
           </div>
         </div>
 
@@ -73,16 +199,23 @@ export default function SchedulePage() {
           <div>
             <h2 className="text-xl font-semibold mb-4">4. Schedule Date & Time</h2>
             <div className="grid gap-4">
-              {/* Simplified date input */}
-              <input
-                type="date"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date ? format(date, "PPP") : "Select date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar mode="single" selected={date} onSelect={setDate} initialFocus />
+                </PopoverContent>
+              </Popover>
 
               <div className="flex space-x-2">
-                <Select>
+                <Select value={hour} onValueChange={setHour}>
                   <SelectTrigger>
                     <SelectValue placeholder="Hour" />
                   </SelectTrigger>
@@ -94,19 +227,19 @@ export default function SchedulePage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Select>
+                <Select value={minute} onValueChange={setMinute}>
                   <SelectTrigger>
                     <SelectValue placeholder="Minute" />
                   </SelectTrigger>
                   <SelectContent>
-                    {["00", "15", "30", "45"].map((minute) => (
-                      <SelectItem key={minute} value={minute}>
-                        {minute}
+                    {minutes.map((min) => (
+                      <SelectItem key={min} value={min}>
+                        {min}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <Select>
+                <Select value={ampm} onValueChange={setAmpm}>
                   <SelectTrigger>
                     <SelectValue placeholder="AM/PM" />
                   </SelectTrigger>
@@ -139,7 +272,7 @@ export default function SchedulePage() {
                 <div className="relative aspect-square mb-3">
                   {selectedImage ? (
                     <Image
-                      src={`/placeholder.svg?height=400&width=400`}
+                      src={photos.find(p => p.id === selectedImage)?.url || "/placeholder.svg"}
                       alt="Selected image"
                       fill
                       className="object-cover rounded"
@@ -151,17 +284,29 @@ export default function SchedulePage() {
                   )}
                 </div>
 
+                {caption && (
+                  <p className="text-sm mb-2">{caption}</p>
+                )}
+
                 <div className="flex items-center space-x-2 text-sm">
                   <Clock className="w-4 h-4" />
-                  <span>{selectedDate || "Not scheduled yet"}</span>
+                  <span>
+                    {date && hour && minute && ampm
+                      ? `${format(date, "PPP")} at ${hour}:${minute} ${ampm.toUpperCase()}`
+                      : "Not scheduled yet"}
+                  </span>
                 </div>
               </CardContent>
             </Card>
           </div>
 
           <div className="flex justify-end space-x-2">
-            <Button variant="outline">Save as Draft</Button>
-            <Button>Schedule Post</Button>
+            <Button variant="outline" onClick={() => router.push('/images')}>
+              Post Now Instead
+            </Button>
+            <Button onClick={handleSchedulePost} disabled={isScheduling}>
+              {isScheduling ? "Scheduling..." : "Schedule Post"}
+            </Button>
           </div>
         </div>
       </div>
