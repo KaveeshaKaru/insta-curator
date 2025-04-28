@@ -27,6 +27,7 @@ export default function SchedulePage() {
   const [photos, setPhotos] = useState<{ id: number; url: string; alt: string }[]>([])
   const [seriesList, setSeriesList] = useState<{ id: number; name: string }[]>([])
   const [isScheduling, setIsScheduling] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
 
   // Generate all minutes (00–59)
@@ -139,124 +140,191 @@ export default function SchedulePage() {
     }
   }
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append("file", file)
+
+    try {
+      setError(null)
+      const response = await fetch("/api/upload-image", {
+        method: "POST",
+        body: formData,
+      })
+      const data = await response.json()
+      if (data.url) {
+        // Create a Photo record
+        const photoResponse = await fetch("/api/photos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: data.url, caption: "Uploaded photo" }),
+        })
+        const photoData = await photoResponse.json()
+        if (photoData.photo) {
+          setPhotos((prev) => [
+            ...prev,
+            {
+              id: photoData.photo.id,
+              url: photoData.photo.url,
+              alt: photoData.photo.caption || `Photo ${photoData.photo.id}`,
+            },
+          ])
+          // Automatically select the newly uploaded image
+          setSelectedImage(photoData.photo.id)
+        } else {
+          setError(photoData.error || "Failed to save photo.")
+        }
+      } else {
+        setError(data.error || "Failed to upload image.")
+      }
+    } catch (err) {
+      console.error("Error uploading image:", err)
+      setError("An error occurred while uploading the image.")
+    }
+  }
+
   return (
-    <div className="flex flex-col p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Schedule Post</h1>
-      </div>
+    <div className="flex h-screen">
+      {/* Left sidebar is handled by the layout component */}
+      
+      <div className="flex-1 p-6">
+        <h1 className="text-2xl font-bold tracking-tight mb-6">Schedule Post</h1>
 
-      {error && <p className="text-red-600">{error}</p>}
-      {success && <p className="text-green-600">{success}</p>}
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-4">1. Select Image</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {photos.map((photo) => (
-                <div
-                  key={photo.id}
-                  className={cn(
-                    "relative aspect-square cursor-pointer rounded-md overflow-hidden border-2",
-                    selectedImage === photo.id ? "border-primary" : "border-transparent"
-                  )}
-                  onClick={() => setSelectedImage(photo.id)}
-                >
-                  <Image src={photo.url} alt={photo.alt} fill className="object-cover" />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h2 className="text-xl font-semibold mb-4">2. Select Series (Optional)</h2>
-            <Select value={selectedSeries} onValueChange={setSelectedSeries}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a series" />
-              </SelectTrigger>
-              <SelectContent>
-                {seriesList.map((series) => (
-                  <SelectItem key={series.id} value={series.id.toString()}>
-                    {series.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <h2 className="text-xl font-semibold mb-4">3. Write Caption</h2>
-            <Textarea
-              placeholder="Write your caption here..."
-              className="min-h-[120px]"
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-4">4. Schedule Date & Time</h2>
-            <div className="grid gap-4">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}
+        <div className="grid gap-6 grid-cols-[1fr,350px] h-[calc(100vh-120px)]">
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-lg font-medium mb-4">1. Select Image</h2>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                ref={fileInputRef}
+                onChange={handleImageUpload}
+              />
+              <Button 
+                onClick={() => fileInputRef.current?.click()} 
+                className="mb-4"
+                variant="outline"
+              >
+                Upload Image
+              </Button>
+              <div className="grid grid-cols-4 gap-2 max-h-[300px] overflow-y-auto p-1">
+                {photos.map((photo) => (
+                  <div
+                    key={photo.id}
+                    className={cn(
+                      "relative aspect-square cursor-pointer rounded-md overflow-hidden border-2",
+                      selectedImage === photo.id ? "border-primary" : "border-transparent"
+                    )}
+                    onClick={() => setSelectedImage(photo.id)}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, "PPP") : "Select date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar mode="single" selected={date} onSelect={setDate} initialFocus />
-                </PopoverContent>
-              </Popover>
+                    <Image src={photo.url} alt={photo.alt} fill className="object-cover" />
+                  </div>
+                ))}
+              </div>
+            </div>
 
-              <div className="flex space-x-2">
-                <Select value={hour} onValueChange={setHour}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Hour" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 12 }).map((_, i) => (
-                      <SelectItem key={i} value={`${i + 1}`}>
-                        {i + 1}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={minute} onValueChange={setMinute}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Minute" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {minutes.map((min) => (
-                      <SelectItem key={min} value={min}>
-                        {min}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={ampm} onValueChange={setAmpm}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="AM/PM" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="am">AM</SelectItem>
-                    <SelectItem value="pm">PM</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div>
+              <h2 className="text-lg font-medium mb-4">2. Select Series (Optional)</h2>
+              <Select value={selectedSeries} onValueChange={setSelectedSeries}>
+                <SelectTrigger className="w-[300px]">
+                  <SelectValue placeholder="Select a series" />
+                </SelectTrigger>
+                <SelectContent>
+                  {seriesList.map((series) => (
+                    <SelectItem key={series.id} value={series.id.toString()}>
+                      {series.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <h2 className="text-lg font-medium mb-4">3. Write Caption</h2>
+                <Textarea
+                  placeholder="Write your caption here..."
+                  className="min-h-[120px] max-h-[120px] resize-none"
+                  value={caption}
+                  onChange={(e) => setCaption(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <h2 className="text-lg font-medium mb-4">4. Schedule Date & Time</h2>
+                <div className="space-y-4">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {date ? format(date, "PPP") : "Select date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={date} onSelect={setDate} initialFocus />
+                    </PopoverContent>
+                  </Popover>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <Select value={hour} onValueChange={setHour}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Hour" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 12 }).map((_, i) => (
+                          <SelectItem key={i} value={`${i + 1}`}>
+                            {i + 1}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={minute} onValueChange={setMinute}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Minute" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {minutes.map((min) => (
+                          <SelectItem key={min} value={min}>
+                            {min}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={ampm} onValueChange={setAmpm}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="AM/PM" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="am">AM</SelectItem>
+                        <SelectItem value="pm">PM</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Clock className="mr-2 h-4 w-4" />
+                    <span>
+                      {date && hour && minute && ampm
+                        ? `Scheduled for ${format(date, "PPP")} at ${hour}:${minute} ${ampm.toUpperCase()}`
+                        : "Not scheduled yet"}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
           <div>
-            <h2 className="text-xl font-semibold mb-4">5. Preview</h2>
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2 mb-3">
+            <h2 className="text-lg font-medium mb-4">5. Preview</h2>
+            <Card className="overflow-hidden">
+              <CardContent className="p-3">
+                <div className="flex items-center space-x-2 mb-2">
                   <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
                     <Image
                       src="/placeholder.svg?height=32&width=32"
@@ -269,7 +337,7 @@ export default function SchedulePage() {
                   <span className="font-medium">your_instagram_handle</span>
                 </div>
 
-                <div className="relative aspect-square mb-3">
+                <div className="relative aspect-square mb-2">
                   {selectedImage ? (
                     <Image
                       src={photos.find(p => p.id === selectedImage)?.url || "/placeholder.svg"}
@@ -288,8 +356,8 @@ export default function SchedulePage() {
                   <p className="text-sm mb-2">{caption}</p>
                 )}
 
-                <div className="flex items-center space-x-2 text-sm">
-                  <Clock className="w-4 h-4" />
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <Clock className="mr-2 h-4 w-4" />
                   <span>
                     {date && hour && minute && ampm
                       ? `${format(date, "PPP")} at ${hour}:${minute} ${ampm.toUpperCase()}`
@@ -298,15 +366,22 @@ export default function SchedulePage() {
                 </div>
               </CardContent>
             </Card>
-          </div>
 
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => router.push('/images')}>
-              Post Now Instead
-            </Button>
-            <Button onClick={handleSchedulePost} disabled={isScheduling}>
-              {isScheduling ? "Scheduling..." : "Schedule Post"}
-            </Button>
+            {(error || success) && (
+              <div className="mt-4">
+                {error && <p className="text-red-600">{error}</p>}
+                {success && <p className="text-green-600">{success}</p>}
+              </div>
+            )}
+
+            <div className="flex gap-2 mt-4">
+              <Button variant="outline" onClick={() => router.push('/images')} className="flex-1">
+                Post Now Instead
+              </Button>
+              <Button onClick={handleSchedulePost} disabled={isScheduling} className="flex-1">
+                {isScheduling ? "Scheduling..." : "Schedule Post"}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
