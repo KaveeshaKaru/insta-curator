@@ -125,3 +125,9 @@ model Post {
 
   @@map("post")
 }
+
+model Lock {
+  id        String   @id
+  lockedAt  DateTime
+  expiresAt DateTime
+}
