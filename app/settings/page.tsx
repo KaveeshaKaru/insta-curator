@@ -10,13 +10,13 @@ import { Switch } from "@/components/ui/switch";
 
 export default function SettingsPage() {
   return (
-    <div className="flex flex-col p-6 space-y-6">
+    <div className="w-full flex flex-col p-8 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="max-w-md">
           <CardHeader>
             <CardTitle>Profile Settings</CardTitle>
             <CardDescription>Manage your account information</CardDescription>
@@ -36,7 +36,7 @@ export default function SettingsPage() {
           </CardFooter>
         </Card>
 
-        <Card>
+        <Card className="min-w-[500px] max-w-[800px]">
           <CardHeader>
             <CardTitle>Instagram Connection</CardTitle>
             <CardDescription>Connect your Instagram account to enable auto-posting</CardDescription>
@@ -48,7 +48,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-2">
+        <Card className="md:col-span-2 lg:col-span-3">
           <CardHeader>
             <CardTitle>Posting Preferences</CardTitle>
             <CardDescription>Configure how your posts are scheduled and published</CardDescription>
