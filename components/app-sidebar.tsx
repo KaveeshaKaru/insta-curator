@@ -2,7 +2,8 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Calendar, Grid3X3, Home, Image, Instagram, LogOut, Settings, User ,FileTerminal,Handshake } from "lucide-react"
+import { Calendar, Grid3X3, Home, Image, Instagram, LogOut, Settings, User, FileTerminal, Handshake } from "lucide-react"
+import { useSession } from "@/lib/auth-client"
 
 import {
   Sidebar,
@@ -19,6 +20,7 @@ import { Button } from "@/components/ui/button"
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const { data: session } = useSession()
 
   const menuItems = [
     {
@@ -84,18 +86,23 @@ export function AppSidebar() {
       <SidebarSeparator />
       <SidebarFooter>
         <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
+          <Link href="/profile" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <Avatar className="h-8 w-8">
-              <AvatarImage src="/placeholder.svg" alt="User" />
+              <AvatarImage src={session?.user?.image || undefined} alt={session?.user?.name || "User"} />
               <AvatarFallback>
-                <User className="h-4 w-4" />
+                {session?.user?.name
+                  ? session.user.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                  : <User className="h-4 w-4" />}
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
-              <span className="text-sm font-medium">User Name</span>
-              <span className="text-xs text-muted-foreground">@username</span>
+              <span className="text-sm font-medium">{session?.user?.name || "User Name"}</span>
+              <span className="text-xs text-muted-foreground">{session?.user?.email || "@username"}</span>
             </div>
-          </div>
+          </Link>
           <Button variant="ghost" size="icon" className="h-8 w-8">
             <LogOut className="h-4 w-4" />
             <span className="sr-only">Log out</span>
