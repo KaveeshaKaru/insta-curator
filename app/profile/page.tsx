@@ -11,14 +11,37 @@ import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useState } from "react"
 import { toast } from "sonner"
+import { signOut } from "@/lib/auth-client"
+import { useRouter } from "next/navigation"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 export default function ProfilePage() {
   const { data: session } = useSession()
   const [isUploading, setIsUploading] = useState(false)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false)
+  const router = useRouter()
 
   if (!session?.user) {
     return null
+  }
+
+  const handleLogout = async () => {
+    try {
+      await signOut()
+      router.push('/auth/login')
+      toast.success('Logged out successfully')
+    } catch (error) {
+      console.error('Error logging out:', error)
+      toast.error('Failed to log out')
+    }
   }
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -73,115 +96,139 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Profile</h1>
-      </div>
+    <>
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">Profile</h1>
+          <Button variant="outline" onClick={() => setShowLogoutDialog(true)}>
+            Logout
+          </Button>
+        </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.2fr,0.8fr]">
-        <Card className="w-full">
-          <CardHeader className="p-4">
-            <CardTitle className="text-lg">Profile Information</CardTitle>
-            <CardDescription className="text-sm">Manage your account information and settings</CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 space-y-4">
-            <div className="flex items-center space-x-4">
-              <div className="relative group">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage 
-                    src={previewImage || session.user.image || undefined} 
-                    alt={session.user.name || "User"} 
+        <div className="grid gap-6 lg:grid-cols-[1.2fr,0.8fr]">
+          <Card className="w-full">
+            <CardHeader className="p-4">
+              <CardTitle className="text-lg">Profile Information</CardTitle>
+              <CardDescription className="text-sm">Manage your account information and settings</CardDescription>
+            </CardHeader>
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center space-x-4">
+                <div className="relative group">
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage 
+                      src={previewImage || session.user.image || undefined} 
+                      alt={session.user.name || "User"} 
+                    />
+                    <AvatarFallback>
+                      {session.user.name
+                        ? session.user.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                        : "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Label 
+                      htmlFor="avatar-upload" 
+                      className="cursor-pointer text-white text-sm font-medium"
+                    >
+                      Change
+                    </Label>
+                  </div>
+                  <Input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                    disabled={isUploading}
                   />
-                  <AvatarFallback>
-                    {session.user.name
-                      ? session.user.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                      : "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <Label 
-                    htmlFor="avatar-upload" 
-                    className="cursor-pointer text-white text-sm font-medium"
-                  >
-                    Change
-                  </Label>
                 </div>
-                <Input
-                  id="avatar-upload"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageUpload}
-                  disabled={isUploading}
-                />
+                <div className="space-y-0.5">
+                  <h2 className="text-lg font-semibold">{session.user.name}</h2>
+                  <p className="text-sm text-muted-foreground">{session.user.email}</p>
+                </div>
               </div>
-              <div className="space-y-0.5">
-                <h2 className="text-lg font-semibold">{session.user.name}</h2>
-                <p className="text-sm text-muted-foreground">{session.user.email}</p>
-              </div>
-            </div>
 
-            <Separator />
+              <Separator />
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1">
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" defaultValue={session.user.name || ""} disabled />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label htmlFor="name">Name</Label>
+                  <Input id="name" defaultValue={session.user.name || ""} disabled />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" defaultValue={session.user.email || ""} disabled />
+                </div>
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" defaultValue={session.user.email || ""} disabled />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card className="w-full">
-          <CardHeader className="p-4">
-            <CardTitle className="text-lg">Account Settings</CardTitle>
-            <CardDescription className="text-sm">Manage your account preferences and security</CardDescription>
-          </CardHeader>
-          <CardContent className="p-4">
-            <Tabs defaultValue="preferences" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="preferences">Preferences</TabsTrigger>
-                <TabsTrigger value="security">Security</TabsTrigger>
-              </TabsList>
-              <TabsContent value="preferences" className="space-y-4">
-                <div className="space-y-1">
-                  <Label>Email Notifications</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Receive email notifications about your account activity
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <Label>Theme</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Choose your preferred theme for the application
-                  </p>
-                </div>
-              </TabsContent>
-              <TabsContent value="security" className="space-y-4">
-                <div className="space-y-1">
-                  <Label>Two-Factor Authentication</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Add an extra layer of security to your account
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <Label>Connected Accounts</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Manage your connected social media accounts
-                  </p>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+          <Card className="w-full">
+            <CardHeader className="p-4">
+              <CardTitle className="text-lg">Account Settings</CardTitle>
+              <CardDescription className="text-sm">Manage your account preferences and security</CardDescription>
+            </CardHeader>
+            <CardContent className="p-4">
+              <Tabs defaultValue="preferences" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="preferences">Preferences</TabsTrigger>
+                  <TabsTrigger value="security">Security</TabsTrigger>
+                </TabsList>
+                <TabsContent value="preferences" className="space-y-4">
+                  <div className="space-y-1">
+                    <Label>Email Notifications</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receive email notifications about your account activity
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Theme</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Choose your preferred theme for the application
+                    </p>
+                  </div>
+                </TabsContent>
+                <TabsContent value="security" className="space-y-4">
+                  <div className="space-y-1">
+                    <Label>Two-Factor Authentication</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Add an extra layer of security to your account
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Connected Accounts</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Manage your connected social media accounts
+                    </p>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
+
+      <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Logout Confirmation</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to log out? You'll need to sign in again to access your account.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleLogout}>
+              Logout
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 } 
