@@ -1,9 +1,59 @@
 "use client"
 
-import { motion } from 'framer-motion';
+import { motion, useAnimation } from 'framer-motion';
 import Navbar from '@/components/Navbar';
 import SocialCard from '@/components/SocialCard';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+
+interface TypewriterProps {
+  text: string;
+  delay?: number;
+}
+
+const Typewriter = ({ text, delay = 0 }: TypewriterProps) => {
+  const [displayText, setDisplayText] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    if (isDeleting) {
+      if (displayText.length > 0) {
+        const timeout = setTimeout(() => {
+          setDisplayText(prev => prev.slice(0, -1));
+        }, 50); // Faster deletion speed
+        return () => clearTimeout(timeout);
+      } else {
+        setIsDeleting(false);
+        setCurrentIndex(0);
+      }
+    } else if (currentIndex < text.length) {
+      const timeout = setTimeout(() => {
+        setDisplayText(prev => prev + text[currentIndex]);
+        setCurrentIndex(prev => prev + 1);
+      }, 100);
+      return () => clearTimeout(timeout);
+    } else {
+      // Wait for 2 seconds before starting to delete
+      const timeout = setTimeout(() => {
+        setIsDeleting(true);
+      }, 2000);
+      return () => clearTimeout(timeout);
+    }
+  }, [currentIndex, text, displayText, isDeleting]);
+
+  return (
+    <motion.p 
+      className="mt-3 text-sm text-gray-500"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5, delay }}
+    >
+      {displayText}
+      <span className="animate-pulse">|</span>
+    </motion.p>
+  );
+};
 
 export default function LandingPage() {
   const router = useRouter();
@@ -88,7 +138,7 @@ export default function LandingPage() {
                 >
                   Sign up, it{"'"}s Free Forever
                 </button>
-                <p className="mt-4 text-sm text-gray-500">No credit card required.</p>
+                <Typewriter text="No credit card required." delay={0.5} />
               </motion.div>
             </div>
 
@@ -182,6 +232,236 @@ export default function LandingPage() {
                 </div>
               </motion.div>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Content Wrangling Section */}
+      <div className="py-24 bg-gray-50">
+        <div className="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex gap-16">
+            {/* Left side - Text content */}
+            <div className="w-[480px] flex-none">
+              <h2 className="text-[56px] leading-tight font-extrabold mb-8 font-funnel bg-gradient-to-r from-[#62cff4] to-[#2c67f2] bg-clip-text text-transparent">
+                Wrangle the best content, created by you or your customers
+              </h2>
+              <button 
+                onClick={handleSignupClick}
+                className="px-6 py-3 bg-gradient-to-r from-[#62cff4] to-[#2c67f2] text-white rounded-full text-base font-medium"
+              >
+                Sign up !!!!
+              </button>
+              <Typewriter text="Curator is a free forever social media aggregator." delay={0.5} />
+            </div>
+
+            {/* Right side - Cards */}
+            <div className="flex-1 overflow-hidden">
+              <motion.div 
+                className="flex space-x-6"
+                animate={{
+                  x: [0, -1120], // 4 cards × 280px width
+                }}
+                transition={{
+                  x: {
+                    duration: 20,
+                    repeat: Infinity,
+                    ease: "linear"
+                  }
+                }}
+              >
+                {/* First set of cards */}
+                <div className="flex-none w-[280px]">
+                  <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+                    <div className="aspect-w-4 aspect-h-4">
+                      <img src="/images/surfer.jpg" alt="Surfers on beach" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2C14.717 2 15.056 2.01 16.122 2.06C17.187 2.11 17.912 2.277 18.55 2.525C19.21 2.779 19.766 3.123 20.322 3.678C20.8305 4.1779 21.224 4.78259 21.475 5.45C21.722 6.087 21.89 6.813 21.94 7.878C21.987 8.944 22 9.283 22 12C22 14.717 21.99 15.056 21.94 16.122C21.89 17.187 21.722 17.912 21.475 18.55C21.2247 19.2178 20.8311 19.8226 20.322 20.322C19.822 20.8303 19.2173 21.2238 18.55 21.475C17.913 21.722 17.187 21.89 16.122 21.94C15.056 21.987 14.717 22 12 22C9.283 22 8.944 21.99 7.878 21.94C6.813 21.89 6.088 21.722 5.45 21.475C4.78233 21.2245 4.17753 20.8309 3.678 20.322C3.16941 19.8222 2.77593 19.2175 2.525 18.55C2.277 17.913 2.11 17.187 2.06 16.122C2.013 15.056 2 14.717 2 12C2 9.283 2.01 8.944 2.06 7.878C2.11 6.812 2.277 6.088 2.525 5.45C2.77524 4.78218 3.1688 4.17732 3.678 3.678C4.17767 3.16923 4.78243 2.77573 5.45 2.525C6.088 2.277 6.812 2.11 7.878 2.06C8.944 2.013 9.283 2 12 2Z" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M17 12C17 13.0609 16.5786 14.0783 15.8284 14.8284C15.0783 15.5786 14.0609 16 13 16C11.9391 16 10.9217 15.5786 10.1716 14.8284C9.42143 14.0783 9 13.0609 9 12C9 10.9391 9.42143 9.92172 10.1716 9.17157C10.9217 8.42143 11.9391 8 13 8C14.0609 8 15.0783 8.42143 15.8284 9.17157C16.5786 9.92172 17 10.9391 17 12Z" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          <span className="text-red-500 font-medium text-sm">Thomas Hill</span>
+                        </div>
+                      </div>
+                      <p className="text-gray-900 font-medium text-sm">Starting the day right</p>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                        <span className="font-medium">@TOMHILL</span>
+                        <span>1 DAY AGO</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-none w-[280px]">
+                  <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+                    <div className="aspect-w-4 aspect-h-4">
+                      <img src="/images/barman.jpg" alt="Barista at work" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                            <path d="M18 2H15C13.6739 2 12.4021 2.52678 11.4645 3.46447C10.5268 4.40215 10 5.67392 10 7V10H7V14H10V22H14V14H17L18 10H14V7C14 6.73478 14.1054 6.48043 14.2929 6.29289C14.4804 6.10536 14.7348 6 15 6H18V2Z" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          <span className="text-red-500 font-medium text-sm">Thomas Hill</span>
+                        </div>
+                      </div>
+                      <p className="text-gray-900 font-medium text-sm">Fueling up</p>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                        <span className="font-medium">@TOMHILL</span>
+                        <span>3 DAYS AGO</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-none w-[280px]">
+                  <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+                    <div className="aspect-w-4 aspect-h-4">
+                      <img src="/images/coconuttrees.jpg" alt="Palm trees" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2C14.717 2 15.056 2.01 16.122 2.06C17.187 2.11 17.912 2.277 18.55 2.525C19.21 2.779 19.766 3.123 20.322 3.678C20.8305 4.1779 21.224 4.78259 21.475 5.45C21.722 6.087 21.89 6.813 21.94 7.878C21.987 8.944 22 9.283 22 12C22 14.717 21.99 15.056 21.94 16.122C21.89 17.187 21.722 17.912 21.475 18.55C21.2247 19.2178 20.8311 19.8226 20.322 20.322C19.822 20.8303 19.2173 21.2238 18.55 21.475C17.913 21.722 17.187 21.89 16.122 21.94C15.056 21.987 14.717 22 12 22C9.283 22 8.944 21.99 7.878 21.94C6.813 21.89 6.088 21.722 5.45 21.475C4.78233 21.2245 4.17753 20.8309 3.678 20.322C3.16941 19.8222 2.77593 19.2175 2.525 18.55C2.277 17.913 2.11 17.187 2.06 16.122C2.013 15.056 2 14.717 2 12C2 9.283 2.01 8.944 2.06 7.878C2.11 6.812 2.277 6.088 2.525 5.45C2.77524 4.78218 3.1688 4.17732 3.678 3.678C4.17767 3.16923 4.78243 2.77573 5.45 2.525C6.088 2.277 6.812 2.11 7.878 2.06C8.944 2.013 9.283 2 12 2Z" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M17 12C17 13.0609 16.5786 14.0783 15.8284 14.8284C15.0783 15.5786 14.0609 16 13 16C11.9391 16 10.9217 15.5786 10.1716 14.8284C9.42143 14.0783 9 13.0609 9 12C9 10.9391 9.42143 9.92172 10.1716 9.17157C10.9217 8.42143 11.9391 8 13 8C14.0609 8 15.0783 8.42143 15.8284 9.17157C16.5786 9.92172 17 10.9391 17 12Z" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          <span className="text-red-500 font-medium text-sm">Thomas Hill</span>
+                        </div>
+                      </div>
+                      <p className="text-gray-900 font-medium text-sm">Island life</p>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                        <span className="font-medium">@TOMHILL</span>
+                        <span>3 WEEKS AGO</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-none w-[280px]">
+                  <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+                    <div className="aspect-w-4 aspect-h-4">
+                      <img src="/images/waves.jpg" alt="Ocean waves" className="w-full h-full object-cover object-center" />
+                    </div>
+                    <div className="p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2C14.717 2 15.056 2.01 16.122 2.06C17.187 2.11 17.912 2.277 18.55 2.525C19.21 2.779 19.766 3.123 20.322 3.678C20.8305 4.1779 21.224 4.78259 21.475 5.45C21.722 6.087 21.89 6.813 21.94 7.878C21.987 8.944 22 9.283 22 12C22 14.717 21.99 15.056 21.94 16.122C21.89 17.187 21.722 17.912 21.475 18.55C21.2247 19.2178 20.8311 19.8226 20.322 20.322C19.822 20.8303 19.2173 21.2238 18.55 21.475C17.913 21.722 17.187 21.89 16.122 21.94C15.056 21.987 14.717 22 12 22C9.283 22 8.944 21.99 7.878 21.94C6.813 21.89 6.088 21.722 5.45 21.475C4.78233 21.2245 4.17753 20.8309 3.678 20.322C3.16941 19.8222 2.77593 19.2175 2.525 18.55C2.277 17.913 2.11 17.187 2.06 16.122C2.013 15.056 2 14.717 2 12C2 9.283 2.01 8.944 2.06 7.878C2.11 6.812 2.277 6.088 2.525 5.45C2.77524 4.78218 3.1688 4.17732 3.678 3.678C4.17767 3.16923 4.78243 2.77573 5.45 2.525C6.088 2.277 6.812 2.11 7.878 2.06C8.944 2.013 9.283 2 12 2Z" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M17 12C17 13.0609 16.5786 14.0783 15.8284 14.8284C15.0783 15.5786 14.0609 16 13 16C11.9391 16 10.9217 15.5786 10.1716 14.8284C9.42143 14.0783 9 13.0609 9 12C9 10.9391 9.42143 9.92172 10.1716 9.17157C10.9217 8.42143 11.9391 8 13 8C14.0609 8 15.0783 8.42143 15.8284 9.17157C16.5786 9.92172 17 10.9391 17 12Z" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          <span className="text-red-500 font-medium text-sm">Thomas Hill</span>
+                        </div>
+                      </div>
+                      <p className="text-gray-900 font-medium text-sm">Beautiful waves</p>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                        <span className="font-medium">@TOMHILL</span>
+                        <span>1 MONTH AGO</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Duplicate set of cards for seamless loop */}
+                <div className="flex-none w-[280px]">
+                  <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+                    <div className="aspect-w-4 aspect-h-4">
+                      <img src="/images/surfer.jpg" alt="Surfers on beach" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2C14.717 2 15.056 2.01 16.122 2.06C17.187 2.11 17.912 2.277 18.55 2.525C19.21 2.779 19.766 3.123 20.322 3.678C20.8305 4.1779 21.224 4.78259 21.475 5.45C21.722 6.087 21.89 6.813 21.94 7.878C21.987 8.944 22 9.283 22 12C22 14.717 21.99 15.056 21.94 16.122C21.89 17.187 21.722 17.912 21.475 18.55C21.2247 19.2178 20.8311 19.8226 20.322 20.322C19.822 20.8303 19.2173 21.2238 18.55 21.475C17.913 21.722 17.187 21.89 16.122 21.94C15.056 21.987 14.717 22 12 22C9.283 22 8.944 21.99 7.878 21.94C6.813 21.89 6.088 21.722 5.45 21.475C4.78233 21.2245 4.17753 20.8309 3.678 20.322C3.16941 19.8222 2.77593 19.2175 2.525 18.55C2.277 17.913 2.11 17.187 2.06 16.122C2.013 15.056 2 14.717 2 12C2 9.283 2.01 8.944 2.06 7.878C2.11 6.812 2.277 6.088 2.525 5.45C2.77524 4.78218 3.1688 4.17732 3.678 3.678C4.17767 3.16923 4.78243 2.77573 5.45 2.525C6.088 2.277 6.812 2.11 7.878 2.06C8.944 2.013 9.283 2 12 2Z" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M17 12C17 13.0609 16.5786 14.0783 15.8284 14.8284C15.0783 15.5786 14.0609 16 13 16C11.9391 16 10.9217 15.5786 10.1716 14.8284C9.42143 14.0783 9 13.0609 9 12C9 10.9391 9.42143 9.92172 10.1716 9.17157C10.9217 8.42143 11.9391 8 13 8C14.0609 8 15.0783 8.42143 15.8284 9.17157C16.5786 9.92172 17 10.9391 17 12Z" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          <span className="text-red-500 font-medium text-sm">Thomas Hill</span>
+                        </div>
+                      </div>
+                      <p className="text-gray-900 font-medium text-sm">Starting the day right</p>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                        <span className="font-medium">@TOMHILL</span>
+                        <span>1 DAY AGO</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-none w-[280px]">
+                  <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+                    <div className="aspect-w-4 aspect-h-4">
+                      <img src="/images/barman.jpg" alt="Barista at work" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                            <path d="M18 2H15C13.6739 2 12.4021 2.52678 11.4645 3.46447C10.5268 4.40215 10 5.67392 10 7V10H7V14H10V22H14V14H17L18 10H14V7C14 6.73478 14.1054 6.48043 14.2929 6.29289C14.4804 6.10536 14.7348 6 15 6H18V2Z" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          <span className="text-red-500 font-medium text-sm">Thomas Hill</span>
+                        </div>
+                      </div>
+                      <p className="text-gray-900 font-medium text-sm">Fueling up</p>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                        <span className="font-medium">@TOMHILL</span>
+                        <span>3 DAYS AGO</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-none w-[280px]">
+                  <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+                    <div className="aspect-w-4 aspect-h-4">
+                      <img src="/images/coconuttrees.jpg" alt="Palm trees" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2C14.717 2 15.056 2.01 16.122 2.06C17.187 2.11 17.912 2.277 18.55 2.525C19.21 2.779 19.766 3.123 20.322 3.678C20.8305 4.1779 21.224 4.78259 21.475 5.45C21.722 6.087 21.89 6.813 21.94 7.878C21.987 8.944 22 9.283 22 12C22 14.717 21.99 15.056 21.94 16.122C21.89 17.187 21.722 17.912 21.475 18.55C21.2247 19.2178 20.8311 19.8226 20.322 20.322C19.822 20.8303 19.2173 21.2238 18.55 21.475C17.913 21.722 17.187 21.89 16.122 21.94C15.056 21.987 14.717 22 12 22C9.283 22 8.944 21.99 7.878 21.94C6.813 21.89 6.088 21.722 5.45 21.475C4.78233 21.2245 4.17753 20.8309 3.678 20.322C3.16941 19.8222 2.77593 19.2175 2.525 18.55C2.277 17.913 2.11 17.187 2.06 16.122C2.013 15.056 2 14.717 2 12C2 9.283 2.01 8.944 2.06 7.878C2.11 6.812 2.277 6.088 2.525 5.45C2.77524 4.78218 3.1688 4.17732 3.678 3.678C4.17767 3.16923 4.78243 2.77573 5.45 2.525C6.088 2.277 6.812 2.11 7.878 2.06C8.944 2.013 9.283 2 12 2Z" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M17 12C17 13.0609 16.5786 14.0783 15.8284 14.8284C15.0783 15.5786 14.0609 16 13 16C11.9391 16 10.9217 15.5786 10.1716 14.8284C9.42143 14.0783 9 13.0609 9 12C9 10.9391 9.42143 9.92172 10.1716 9.17157C10.9217 8.42143 11.9391 8 13 8C14.0609 8 15.0783 8.42143 15.8284 9.17157C16.5786 9.92172 17 10.9391 17 12Z" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          <span className="text-red-500 font-medium text-sm">Thomas Hill</span>
+                        </div>
+                      </div>
+                      <p className="text-gray-900 font-medium text-sm">Island life</p>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                        <span className="font-medium">@TOMHILL</span>
+                        <span>3 WEEKS AGO</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-none w-[280px]">
+                  <div className="bg-white rounded-2xl overflow-hidden shadow-sm">
+                    <div className="aspect-w-4 aspect-h-4">
+                      <img src="/images/waves.jpg" alt="Ocean waves" className="w-full h-full object-cover object-center" />
+                    </div>
+                    <div className="p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 2C14.717 2 15.056 2.01 16.122 2.06C17.187 2.11 17.912 2.277 18.55 2.525C19.21 2.779 19.766 3.123 20.322 3.678C20.8305 4.1779 21.224 4.78259 21.475 5.45C21.722 6.087 21.89 6.813 21.94 7.878C21.987 8.944 22 9.283 22 12C22 14.717 21.99 15.056 21.94 16.122C21.89 17.187 21.722 17.912 21.475 18.55C21.2247 19.2178 20.8311 19.8226 20.322 20.322C19.822 20.8303 19.2173 21.2238 18.55 21.475C17.913 21.722 17.187 21.89 16.122 21.94C15.056 21.987 14.717 22 12 22C9.283 22 8.944 21.99 7.878 21.94C6.813 21.89 6.088 21.722 5.45 21.475C4.78233 21.2245 4.17753 20.8309 3.678 20.322C3.16941 19.8222 2.77593 19.2175 2.525 18.55C2.277 17.913 2.11 17.187 2.06 16.122C2.013 15.056 2 14.717 2 12C2 9.283 2.01 8.944 2.06 7.878C2.11 6.812 2.277 6.088 2.525 5.45C2.77524 4.78218 3.1688 4.17732 3.678 3.678C4.17767 3.16923 4.78243 2.77573 5.45 2.525C6.088 2.277 6.812 2.11 7.878 2.06C8.944 2.013 9.283 2 12 2Z" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M17 12C17 13.0609 16.5786 14.0783 15.8284 14.8284C15.0783 15.5786 14.0609 16 13 16C11.9391 16 10.9217 15.5786 10.1716 14.8284C9.42143 14.0783 9 13.0609 9 12C9 10.9391 9.42143 9.92172 10.1716 9.17157C10.9217 8.42143 11.9391 8 13 8C14.0609 8 15.0783 8.42143 15.8284 9.17157C16.5786 9.92172 17 10.9391 17 12Z" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          <span className="text-red-500 font-medium text-sm">Thomas Hill</span>
+                        </div>
+                      </div>
+                      <p className="text-gray-900 font-medium text-sm">Beautiful waves</p>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                        <span className="font-medium">@TOMHILL</span>
+                        <span>1 MONTH AGO</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
           </div>
         </div>
       </div>

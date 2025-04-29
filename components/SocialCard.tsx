@@ -1,6 +1,6 @@
 "use client"
 
-import { motion } from 'framer-motion';
+import { motion, useMotionValue } from 'framer-motion';
 import Image from 'next/image';
 
 interface SocialCardProps {
@@ -15,11 +15,26 @@ export default function SocialCard({ imageSrc, username, content, platform, dela
   return (
     <motion.div
       initial={{ opacity: 0, y: 50 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={{ 
+        opacity: 1,
+        y: 0,
+      }}
       transition={{
         duration: 0.8,
         delay,
         ease: [0.21, 1.11, 0.81, 0.99],
+      }}
+      whileHover={{ scale: 1.02 }}
+      style={{
+        y: useMotionValue(0),
+      }}
+      onUpdate={(latest) => {
+        const time = Date.now() / 1000;
+        const waveOffset = delay * 0.3;
+        const waveHeight = 3;
+        const waveSpeed = 2;
+        const y = Math.sin((time + waveOffset) * waveSpeed) * waveHeight;
+        latest.y = y;
       }}
       className="bg-white rounded-lg shadow-lg p-4 max-w-sm w-full"
     >
