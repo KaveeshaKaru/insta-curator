@@ -2,8 +2,16 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { Instagram } from 'lucide-react';
 
 export default function Navbar() {
+  const router = useRouter();
+
+  const handleSignupClick = () => {
+    router.push('/auth/login');
+  };
+
   return (
     <motion.nav 
       initial={{ y: -20, opacity: 0 }}
@@ -14,10 +22,11 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center">
-            <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
+          <Link href="/" className="flex items-center space-x-2">
+            <Instagram className="h-6 w-6 text-gray-900" />
+            <span className="text-xl font-semibold text-gray-900">
+              Insta-Curator
+            </span>
           </Link>
 
           {/* Navigation Links */}
@@ -33,15 +42,12 @@ export default function Navbar() {
 
           {/* Auth Buttons */}
           <div className="flex items-center space-x-4">
-            <Link href="/auth/login" className="text-gray-900 hover:text-gray-600">
-              Login
-            </Link>
-            <Link
-              href="/auth/register"
-              className="bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800"
+            <button 
+              onClick={handleSignupClick}
+              className="px-4 py-2 bg-gradient-to-r from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] text-white font-bold rounded-md transition-transform transform-gpu hover:-translate-y-1 hover:shadow-lg"
             >
               Sign up, it's Free
-            </Link>
+            </button>
           </div>
         </div>
       </div>
