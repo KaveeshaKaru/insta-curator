@@ -7,9 +7,10 @@ import { ReactNode } from "react"
 
 export default function LayoutWrapper({ children }: { children: ReactNode }) {
   const pathname = usePathname()
-  const isAuthRoute = pathname === "/auth/login"
+  const isAuthRoute = pathname === "/auth/login" || pathname === "/auth/register"
+  const isLandingPage = pathname === "/landingPage"
 
-  if (isAuthRoute) {
+  if (isAuthRoute || isLandingPage) {
     return <>{children}</>
   }
 
