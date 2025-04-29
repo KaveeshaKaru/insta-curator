@@ -1,12 +1,16 @@
 import { CalendarClock, Grid3X3, ImageIcon, Instagram } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { formatDistanceToNow } from "date-fns"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { getDashboardStats } from "@/lib/dashboard.service"
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const stats = await getDashboardStats();
+
   return (
     <div className="flex flex-col p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -23,8 +27,8 @@ export default function DashboardPage() {
             <ImageIcon className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">128</div>
-            <p className="text-xs text-muted-foreground">+12 from last week</p>
+            <div className="text-2xl font-bold">{stats.totalImages}</div>
+            <p className="text-xs text-muted-foreground">+{stats.lastWeekImages} from last week</p>
           </CardContent>
         </Card>
         <Card>
@@ -33,8 +37,8 @@ export default function DashboardPage() {
             <Grid3X3 className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
-            <p className="text-xs text-muted-foreground">+2 from last month</p>
+            <div className="text-2xl font-bold">{stats.seriesCount}</div>
+            <p className="text-xs text-muted-foreground">+{stats.lastMonthSeries} from last month</p>
           </CardContent>
         </Card>
         <Card>
@@ -43,8 +47,10 @@ export default function DashboardPage() {
             <CalendarClock className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">24</div>
-            <p className="text-xs text-muted-foreground">Next post in 2 days</p>
+            <div className="text-2xl font-bold">{stats.scheduledPosts}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.nextPostDate ? `Next post ${formatDistanceToNow(stats.nextPostDate)}` : 'No posts scheduled'}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -53,8 +59,8 @@ export default function DashboardPage() {
             <Instagram className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">42</div>
-            <p className="text-xs text-muted-foreground">+3 this week</p>
+            <div className="text-2xl font-bold">{stats.postedCount}</div>
+            <p className="text-xs text-muted-foreground">+{stats.thisWeekPosts} this week</p>
           </CardContent>
         </Card>
       </div>
