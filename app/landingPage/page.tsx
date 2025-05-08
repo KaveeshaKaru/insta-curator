@@ -105,16 +105,16 @@ export default function LandingPage() {
       <Navbar />
       
       {/* Hero Section */}
-      <div className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
+      <div id="hero" className="pt-24 pb-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-[90rem] mx-auto">
-          <div className="lg:grid lg:grid-cols-2 lg:gap-12 lg:items-start">
+          <div className="flex flex-col lg:grid lg:grid-cols-2 lg:gap-12 lg:items-start">
             {/* Left Column - Text */}
             <div className="relative lg:sticky lg:top-8 flex flex-col justify-center h-full">
               <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8 }}
-                className="text-5xl font-bold tracking-tight bg-gradient-to-r from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] bg-clip-text text-transparent sm:text-6xl"
+                className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] bg-clip-text text-transparent"
               >
                 The easiest way to add a social feed to your site for free
               </motion.h1>
@@ -122,7 +122,7 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.2 }}
-                className="mt-6 text-lg text-gray-600"
+                className="mt-4 sm:mt-6 text-base sm:text-lg text-gray-600"
               >
                 Curator is a free forever social media aggregator that helps you collect and display content. Set up your feed in under 5 minutes.
               </motion.p>
@@ -130,11 +130,11 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.4 }}
-                className="mt-8"
+                className="mt-6 sm:mt-8"
               >
                 <button 
                   onClick={handleSignupClick}
-                  className="px-8 py-4 bg-gradient-to-r from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] text-white font-bold rounded-full transition-transform transform-gpu hover:-translate-y-1 hover:shadow-lg"
+                  className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] text-white font-bold rounded-full transition-transform transform-gpu hover:-translate-y-1 hover:shadow-lg"
                 >
                   Sign up, it{"'"}s Free Forever
                 </button>
@@ -143,8 +143,8 @@ export default function LandingPage() {
             </div>
 
             {/* Right Column - Floating Cards */}
-            <div className="mt-12 lg:mt-0 relative">
-              <div className="grid grid-cols-3 gap-6 relative">
+            <div className="mt-8 sm:mt-12 lg:mt-0 relative">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6 relative">
                 {socialCards.slice(0, 3).map((card, index) => (
                   <motion.div
                     key={index}
@@ -157,7 +157,7 @@ export default function LandingPage() {
                   </motion.div>
                 ))}
               </div>
-              <div className="grid grid-cols-2 gap-6 mt-6 relative mx-auto max-w-[75%]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6 relative mx-auto max-w-full sm:max-w-[75%]">
                 {socialCards.slice(3).map((card, index) => (
                   <motion.div
                     key={index}
@@ -176,7 +176,7 @@ export default function LandingPage() {
       </div>
       
       {/* Features Section */}
-      <div className="py-24 bg-gray-50">
+      <div id="features" className="py-16 sm:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -185,13 +185,13 @@ export default function LandingPage() {
             transition={{ duration: 0.8 }}
             className="text-center"
           >
-            <h2 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] bg-clip-text text-transparent">Why choose Insta-Curator?</h2>
-            <p className="mt-4 text-lg text-gray-600">
+            <h2 className="text-2xl sm:text-4xl font-bold tracking-tight bg-gradient-to-r from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] bg-clip-text text-transparent">Why choose Insta-Curator?</h2>
+            <p className="mt-2 sm:mt-4 text-base sm:text-lg text-gray-600">
               Powerful features designed to help you showcase your social content beautifully
             </p>
           </motion.div>
 
-          <div className="mt-20 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 sm:mt-20 grid grid-cols-1 gap-8 sm:gap-12 sm:grid-cols-2 lg:grid-cols-3">
             {[
               {
                 icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />,
@@ -237,17 +237,17 @@ export default function LandingPage() {
       </div>
 
       {/* Content Wrangling Section */}
-      <div className="py-24 bg-gray-50">
+      <div id="content" className="py-16 sm:py-24 bg-gray-50">
         <div className="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex gap-16">
+          <div className="flex flex-col lg:flex-row gap-8 lg:gap-16">
             {/* Left side - Text content */}
-            <div className="w-[480px] flex-none">
-              <h2 className="text-[56px] leading-tight font-extrabold mb-8 font-funnel bg-gradient-to-r from-[#62cff4] to-[#2c67f2] bg-clip-text text-transparent">
+            <div className="w-full lg:w-[480px] flex-none">
+              <h2 className="text-2xl sm:text-4xl md:text-[56px] leading-tight font-extrabold mb-4 sm:mb-8 font-funnel bg-gradient-to-r from-[#62cff4] to-[#2c67f2] bg-clip-text text-transparent">
                 Wrangle the best content, created by you or your customers
               </h2>
               <button 
                 onClick={handleSignupClick}
-                className="px-6 py-3 bg-gradient-to-r from-[#62cff4] to-[#2c67f2] text-white rounded-full text-base font-medium"
+                className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-[#62cff4] to-[#2c67f2] text-white rounded-full text-base font-medium"
               >
                 Sign up !!!!
               </button>
@@ -255,9 +255,9 @@ export default function LandingPage() {
             </div>
 
             {/* Right side - Cards */}
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-x-auto">
               <motion.div 
-                className="flex space-x-6"
+                className="flex space-x-4 sm:space-x-6 min-w-[700px] sm:min-w-0"
                 animate={{
                   x: [0, -1120], // 4 cards × 280px width
                 }}
@@ -467,7 +467,7 @@ export default function LandingPage() {
       </div>
 
       {/* Testimonials Section */}
-      <div className="py-24 bg-gray-50">
+      <div id="testimonials" className="py-16 sm:py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -476,13 +476,13 @@ export default function LandingPage() {
             transition={{ duration: 0.8 }}
             className="text-center"
           >
-            <h2 className="text-4xl font-bold tracking-tight text-gray-900">What our customers say</h2>
-            <p className="mt-4 text-xl text-gray-600">
+            <h2 className="text-2xl sm:text-4xl font-bold tracking-tight text-gray-900">What our customers say</h2>
+            <p className="mt-2 sm:mt-4 text-base sm:text-xl text-gray-600">
               Join thousands of satisfied customers already using Insta-Curator
             </p>
           </motion.div>
 
-          <div className="mt-20 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 sm:mt-20 grid grid-cols-1 gap-6 sm:gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {[
               {
                 name: "Sarah Johnson",
@@ -539,14 +539,15 @@ export default function LandingPage() {
 
       {/* Footer */}
       <motion.footer
+        id="footer"
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
         transition={{ duration: 0.8 }}
         className="bg-gray-900 text-white"
       >
-        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="max-w-7xl mx-auto py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 sm:gap-8">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
