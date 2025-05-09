@@ -208,15 +208,6 @@ export default function ImagesPage() {
             <Card className="overflow-hidden">
               <CardContent className="p-3">
                 <div className="flex items-center space-x-2 mb-2">
-                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                    <Image
-                      src="/placeholder.svg?height=32&width=32"
-                      alt="Profile"
-                      width={32}
-                      height={32}
-                      className="rounded-full"
-                    />
-                  </div>
                   <InstagramUsername />
                 </div>
 
