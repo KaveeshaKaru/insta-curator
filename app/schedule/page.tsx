@@ -24,7 +24,7 @@ export default function SchedulePage() {
   const [caption, setCaption] = useState<string>("")
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const [photos, setPhotos] = useState<{ id: number; url: string; alt: string }[]>([])
+  const [sessionPhotos, setSessionPhotos] = useState<{ id: number; url: string; alt: string }[]>([])
   const [seriesList, setSeriesList] = useState<{ id: number; name: string }[]>([])
   const [isScheduling, setIsScheduling] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -33,35 +33,21 @@ export default function SchedulePage() {
   // Generate all minutes (00–59)
   const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, "0"))
 
-  // Fetch user's series and photos on mount
+  // Only fetch series on mount
   useEffect(() => {
-    async function fetchData() {
+    async function fetchSeries() {
       try {
-        // Fetch series
         const seriesResponse = await fetch("/api/series")
         const seriesData = await seriesResponse.json()
         if (seriesData.series) {
           setSeriesList(seriesData.series)
         }
-
-        // Fetch photos
-        const photosResponse = await fetch("/api/photos")
-        const photosData = await photosResponse.json()
-        if (photosData.photos) {
-          setPhotos(
-            photosData.photos.map((photo: any) => ({
-              id: photo.id,
-              url: photo.url,
-              alt: photo.caption || `Photo ${photo.id}`,
-            }))
-          )
-        }
       } catch (err) {
-        console.error("Error fetching data:", err)
-        setError("Failed to load series or photos.")
+        console.error("Error fetching series:", err)
+        setError("Failed to load series.")
       }
     }
-    fetchData()
+    fetchSeries()
   }, [])
 
   const handleSchedulePost = async () => {
@@ -87,7 +73,7 @@ export default function SchedulePage() {
     setIsScheduling(true)
 
     try {
-      const photo = photos.find((p) => p.id === selectedImage)
+      const photo = sessionPhotos.find((p) => p.id === selectedImage)
       if (!photo || photo.url.includes("placeholder.svg")) {
         setError("Please select a valid image.")
         return
@@ -121,7 +107,7 @@ export default function SchedulePage() {
       const data = await response.json()
       if (data.success) {
         setSuccess("Post scheduled successfully!")
-        // Reset form
+        // Reset form and remove the scheduled image from session
         setCaption("")
         setSelectedImage(null)
         setSelectedSeries("")
@@ -129,6 +115,7 @@ export default function SchedulePage() {
         setHour("")
         setMinute("")
         setAmpm("")
+        setSessionPhotos(prev => prev.filter(p => p.id !== selectedImage))
       } else {
         setError(data.error || "Failed to schedule post.")
       }
@@ -163,14 +150,12 @@ export default function SchedulePage() {
         })
         const photoData = await photoResponse.json()
         if (photoData.photo) {
-          setPhotos((prev) => [
-            ...prev,
-            {
-              id: photoData.photo.id,
-              url: photoData.photo.url,
-              alt: photoData.photo.caption || `Photo ${photoData.photo.id}`,
-            },
-          ])
+          const newPhoto = {
+            id: photoData.photo.id,
+            url: photoData.photo.url,
+            alt: photoData.photo.caption || `Photo ${photoData.photo.id}`,
+          }
+          setSessionPhotos((prev) => [...prev, newPhoto])
           // Automatically select the newly uploaded image
           setSelectedImage(photoData.photo.id)
         } else {
@@ -211,7 +196,7 @@ export default function SchedulePage() {
                 Upload Image
               </Button>
               <div className="grid grid-cols-4 gap-2 max-h-[300px] overflow-y-auto p-1">
-                {photos.map((photo) => (
+                {sessionPhotos.map((photo) => (
                   <div
                     key={photo.id}
                     className={cn(
@@ -340,7 +325,7 @@ export default function SchedulePage() {
                 <div className="relative aspect-square mb-2">
                   {selectedImage ? (
                     <Image
-                      src={photos.find(p => p.id === selectedImage)?.url || "/placeholder.svg"}
+                      src={sessionPhotos.find(p => p.id === selectedImage)?.url || "/placeholder.svg"}
                       alt="Selected image"
                       fill
                       className="object-cover rounded"
