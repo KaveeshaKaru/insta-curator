@@ -16,41 +16,27 @@ export default function ImagesPage() {
   const [caption, setCaption] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [photos, setPhotos] = useState<{ id: number; url: string; alt: string }[]>([]);
+  const [sessionPhotos, setSessionPhotos] = useState<{ id: number; url: string; alt: string }[]>([]);
   const [seriesList, setSeriesList] = useState<{ id: number; name: string }[]>([]);
   const [isPosting, setIsPosting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  // Fetch user's series and photos on mount
+  // Only fetch series on mount, not photos
   useEffect(() => {
-    async function fetchData() {
+    async function fetchSeries() {
       try {
-        // Fetch series
         const seriesResponse = await fetch("/api/series");
         const seriesData = await seriesResponse.json();
         if (seriesData.series) {
           setSeriesList(seriesData.series);
         }
-
-        // Fetch photos
-        const photosResponse = await fetch("/api/photos");
-        const photosData = await photosResponse.json();
-        if (photosData.photos) {
-          setPhotos(
-            photosData.photos.map((photo: any) => ({
-              id: photo.id,
-              url: photo.url,
-              alt: photo.caption || `Photo ${photo.id}`,
-            }))
-          );
-        }
       } catch (err) {
-        console.error("Error fetching data:", err);
-        setError("Failed to load series or photos.");
+        console.error("Error fetching series:", err);
+        setError("Failed to load series.");
       }
     }
-    fetchData();
+    fetchSeries();
   }, []);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,14 +62,14 @@ export default function ImagesPage() {
         });
         const photoData = await photoResponse.json();
         if (photoData.photo) {
-          setPhotos((prev) => [
-            ...prev,
-            {
-              id: photoData.photo.id,
-              url: photoData.photo.url,
-              alt: photoData.photo.caption || `Photo ${photoData.photo.id}`,
-            },
-          ]);
+          const newPhoto = {
+            id: photoData.photo.id,
+            url: photoData.photo.url,
+            alt: photoData.photo.caption || `Photo ${photoData.photo.id}`,
+          };
+          setSessionPhotos((prev) => [...prev, newPhoto]);
+          // Automatically select the newly uploaded image
+          setSelectedImage(photoData.photo.id);
         } else {
           setError(photoData.error || "Failed to save photo.");
         }
@@ -111,7 +97,7 @@ export default function ImagesPage() {
     setIsPosting(true);
 
     try {
-      const photo = photos.find((p) => p.id === selectedImage);
+      const photo = sessionPhotos.find((p) => p.id === selectedImage);
       if (!photo || photo.url.includes("placeholder.svg")) {
         setError("Please upload a valid image.");
         return;
@@ -130,10 +116,11 @@ export default function ImagesPage() {
       const data = await response.json();
       if (data.success) {
         setSuccess("Post published successfully!");
-        // Reset form
+        // Reset form and remove the posted image from session photos
         setCaption("");
         setSelectedImage(null);
         setSelectedSeries("");
+        setSessionPhotos(prev => prev.filter(p => p.id !== selectedImage));
       } else {
         setError(data.error || "Failed to publish post.");
       }
@@ -173,7 +160,7 @@ export default function ImagesPage() {
                 Upload Image
               </Button>
               <div className="grid grid-cols-3 gap-2 max-h-[500px] overflow-y-auto p-1">
-                {photos.map((photo) => (
+                {sessionPhotos.map((photo) => (
                   <div
                     key={photo.id}
                     className={cn(
@@ -235,7 +222,7 @@ export default function ImagesPage() {
                 <div className="relative aspect-square mb-2">
                   {selectedImage ? (
                     <Image
-                      src={photos.find(p => p.id === selectedImage)?.url || "/placeholder.svg"}
+                      src={sessionPhotos.find(p => p.id === selectedImage)?.url || "/placeholder.svg"}
                       alt="Selected image"
                       fill
                       className="object-cover rounded"
