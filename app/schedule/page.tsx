@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, Suspense } from "react"
 import { CalendarIcon, Clock } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
+import InstagramUsername from "@/components/InstagramUsername"
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -319,7 +320,7 @@ export default function SchedulePage() {
                       className="rounded-full"
                     />
                   </div>
-                  <span className="font-medium">your_instagram_handle</span>
+                  <InstagramUsername />
                 </div>
 
                 <div className="relative aspect-square mb-2">

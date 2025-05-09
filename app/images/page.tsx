@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import InstagramUsername from "@/components/InstagramUsername";
 
 export default function ImagesPage() {
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
@@ -216,7 +217,7 @@ export default function ImagesPage() {
                       className="rounded-full"
                     />
                   </div>
-                  <span className="font-medium">your_instagram_handle</span>
+                  <InstagramUsername />
                 </div>
 
                 <div className="relative aspect-square mb-2">
