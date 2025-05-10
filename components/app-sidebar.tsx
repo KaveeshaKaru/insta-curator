@@ -2,10 +2,11 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Calendar, Grid3X3, Home, Image, Instagram, LogOut, Settings, User, FileTerminal, Handshake } from "lucide-react"
+import { Calendar, Grid3X3, Home, Image as LucideImage, Instagram, LogOut, Settings, User, FileTerminal, Handshake } from "lucide-react"
 import { useSession, signOut } from "@/lib/auth-client"
 import { toast } from "sonner"
 import { useState } from "react"
+import Image from 'next/image';
 
 import {
   Sidebar,
@@ -54,7 +55,7 @@ export function AppSidebar() {
     {
       title: "Images",
       href: "/images",
-      icon: Image,
+      icon: LucideImage,
     },
     {
       title: "Series",
@@ -88,8 +89,7 @@ export function AppSidebar() {
       <Sidebar>
         <SidebarHeader className="flex flex-col items-center justify-center py-6">
           <div className="flex items-center gap-2 px-2">
-            <Instagram className="h-6 w-6" />
-            <h1 className="text-xl font-bold">iCurator</h1>
+            <Image src="/logo/iCurator-logo.png" alt="iCurator Logo" width={140} height={40} priority />
           </div>
         </SidebarHeader>
         <SidebarSeparator />
