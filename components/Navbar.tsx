@@ -15,11 +15,11 @@ export default function Navbar() {
   };
 
   return (
-    <motion.nav 
+    <motion.nav
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5 }}
-      className="fixed w-full z-50 border-b border-gray-100 bg-gradient-to-r from-[#f12711] to-[#f5af19] rounded-b-2xl shadow-lg"
+      className="fixed w-full z-50 border-b border-gray-100 bg-white rounded-b-2xl shadow-lg"
       style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -40,14 +40,14 @@ export default function Navbar() {
             ].map((item, idx) => (
               <motion.button
                 key={item.target}
-                whileHover={{ scale: 1.1, y: -2, color: '#ffe259', textShadow: '0px 2px 8px #ff7300' }}
-                whileTap={{ scale: 0.95, color: '#ff7300' }}
+                whileHover={{ scale: 1.0, y: -1, color: '#0096FF', textShadow: '0px 2px 8px #0096FF' }}
+                whileTap={{ scale: 0.95, color: '#0096FF' }}
                 transition={{ type: 'spring', stiffness: 300 }}
                 onClick={() => {
                   const el = document.getElementById(item.target);
                   if (el) el.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="text-white font-bold tracking-wide focus:outline-none bg-transparent border-none text-base px-2 py-1"
+                className="text-gray-500 font-bold tracking-wide focus:outline-none bg-transparent border-none text-base px-2 py-1"
                 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
               >
                 {item.label}
@@ -70,11 +70,13 @@ export default function Navbar() {
 
           {/* Auth Buttons (Desktop) */}
           <div className="hidden md:flex items-center space-x-4">
-            <button 
+            <button
               onClick={handleSignupClick}
-              className="px-4 py-2 bg-gradient-to-r from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] text-white font-bold rounded-md transition-transform transform-gpu hover:-translate-y-1 hover:shadow-lg"
+              className="px-4 py-2 bg-gradient-to-r from-[#62cff4] to-[#2c67f2] text-white font-bold rounded-md transition-transform transform-gpu hover:-translate-y-0.5 hover:shadow-lg"
             >
-              Sign up, it's Free
+              <span className="font-bold text-transparent bg-clip-text bg-white">
+                Sign up, it's Free
+              </span>
             </button>
           </div>
         </div>
@@ -110,12 +112,12 @@ export default function Navbar() {
               {item.label}
             </motion.button>
           ))}
-          <button 
+          <button
             onClick={() => {
               setMobileMenuOpen(false);
               handleSignupClick();
             }}
-            className="w-11/12 px-4 py-2 bg-gradient-to-r from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] text-white font-bold rounded-md transition-transform transform-gpu hover:-translate-y-1 hover:shadow-lg mt-2"
+            className="w-11/12 px-4 py-2 bg-white text-transparent bg-clip-text bg-gradient-to-r from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] font-bold rounded-md transition-transform transform-gpu hover:-translate-y-1 hover:shadow-lg border border-gray-200 mt-2"
           >
             Sign up, it's Free
           </button>
