@@ -18,7 +18,7 @@ export default function LayoutWrapper({ children }: { children: ReactNode }) {
     <SidebarProvider>
       <div className="flex h-screen">
         <AppSidebar />
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-auto ml-24">{children}</main>
       </div>
     </SidebarProvider>
   )

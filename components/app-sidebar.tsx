@@ -86,21 +86,21 @@ export function AppSidebar() {
 
   return (
     <>
-      <Sidebar>
+      <Sidebar className="w-80">
         <SidebarHeader className="flex flex-col items-center justify-center py-6">
           <div className="flex items-center gap-2 px-2">
             <Image src="/logo/iCurator-logo.png" alt="iCurator Logo" width={140} height={40} priority />
           </div>
         </SidebarHeader>
         <SidebarSeparator />
-        <SidebarContent>
-          <SidebarMenu>
+        <SidebarContent className="justify-between">
+          <SidebarMenu className="p-5">
             {menuItems.map((item) => (
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.title}>
                   <Link href={item.href}>
                     <item.icon className="h-5 w-5" />
-                    <span>{item.title}</span>
+                    <span className="text-md font-bold">{item.title}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
