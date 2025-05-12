@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Calendar, Grid3X3, Home, Image as LucideImage, Instagram, LogOut, Settings, User, FileTerminal, Handshake } from "lucide-react"
+import { Calendar, Grid3X3, Home, Image as LucideImage, BookImage, LogOut, Settings, User, FileTerminal, Handshake } from "lucide-react"
 import { useSession, signOut } from "@/lib/auth-client"
 import { toast } from "sonner"
 import { useState } from "react"
@@ -68,6 +68,11 @@ export function AppSidebar() {
       title: "Schedule",
       href: "/schedule",
       icon: Calendar,
+    },
+    {
+      title: "Posts",
+      href: "/posts",
+      icon: BookImage,
     },
     {
       title: "Settings",
