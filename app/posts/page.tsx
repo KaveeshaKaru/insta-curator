@@ -95,6 +95,48 @@ export default function PostsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const EmptyState = () => (
+    <div className="flex flex-col items-center justify-center w-full min-h-[600px] bg-gray-50 rounded-lg border border-dashed border-gray-300 px-4">
+      <Image
+        src="/placeholder.svg"
+        alt="No images"
+        width={120}
+        height={120}
+        className="mb-6 opacity-50"
+      />
+      <h3 className="text-xl font-medium text-gray-900 mb-2">No images found</h3>
+      <p className="text-sm text-gray-500 mb-6 text-center max-w-md">
+        Get started by adding some images to your collection. You can upload images and schedule them for posting.
+      </p>
+      <Button variant="outline" size="lg" onClick={() => router.push("/schedule")}>
+        <Plus className="w-4 h-4 mr-2" />
+        Upload Images
+      </Button>
+    </div>
+  )
+
+  const LoadingState = () => (
+    <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <Card key={i} className="overflow-hidden animate-pulse">
+          <CardContent className="p-0">
+            <div className="relative aspect-square bg-gray-200" />
+          </CardContent>
+          <CardHeader className="p-14 pb-0">
+            <div className="w-2/3 h-4 bg-gray-200 rounded" />
+            <div className="w-1/2 h-3 bg-gray-200 rounded mt-2" />
+          </CardHeader>
+          <CardContent className="p-4 pt-2">
+            <div className="w-full h-8 bg-gray-200 rounded" />
+          </CardContent>
+          <CardFooter className="p-4 pt-0">
+            <div className="w-1/3 h-6 bg-gray-200 rounded" />
+          </CardFooter>
+        </Card>
+      ))}
+    </div>
+  )
+
   useEffect(() => {
     fetchPosts()
   }, [])
@@ -137,15 +179,15 @@ export default function PostsPage() {
 
   const renderPosts = (posts: Post[]) => {
     if (isLoading) {
-      return <p>Loading posts...</p>
+      return <LoadingState />
     }
 
     if (posts.length === 0) {
-      return <p className="text-muted-foreground">No posts found</p>
+      return <EmptyState />
     }
 
     return (
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
         {posts.map((post) => (
           <PostCard key={post.id} post={post} />
         ))}
@@ -154,55 +196,61 @@ export default function PostsPage() {
   }
 
   return (
-    <div className="flex flex-col p-10 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Posts</h1>
-        <Button onClick={() => router.push("/schedule")}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add New Image
-        </Button>
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <Input 
-          placeholder="Search images..." 
-          className="max-w-sm" 
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <Button variant="outline" onClick={() => setSearchQuery("")}>Clear</Button>
-      </div>
-
-      {error && (
-        <div className="text-red-600 bg-red-50 p-4 rounded-md">
-          {error}
+    <div className="flex flex-col min-h-screen">
+      <div className="flex-1 container mx-auto max-w-[1600px] py-8 px-4 space-y-8">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold tracking-tight">Posts</h1>
+          <Button onClick={() => router.push("/schedule")}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add New Image
+          </Button>
         </div>
-      )}
 
-      <Tabs defaultValue="all">
-        <TabsList>
-          <TabsTrigger value="all">All Images</TabsTrigger>
-          <TabsTrigger value="pending">Pending</TabsTrigger>
-          <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
-          <TabsTrigger value="posted">Posted</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center space-x-2 max-w-2xl">
+          <Input 
+            placeholder="Search images..." 
+            className="flex-1" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <Button variant="outline" onClick={() => setSearchQuery("")}>Clear</Button>
+        </div>
 
-        <TabsContent value="all" className="mt-6">
-          {renderPosts(filteredPosts)}
-        </TabsContent>
+        {error && (
+          <div className="text-red-600 bg-red-50 p-4 rounded-md">
+            {error}
+          </div>
+        )}
 
-        <TabsContent value="pending" className="mt-6">
-          {renderPosts(getPostsByStatus("pending"))}
-        </TabsContent>
+        <div className="flex-1">
+          <Tabs defaultValue="all" className="h-full">
+            <TabsList className="w-full max-w-2xl">
+              <TabsTrigger value="all" className="flex-1">All Images</TabsTrigger>
+              <TabsTrigger value="pending" className="flex-1">Pending</TabsTrigger>
+              <TabsTrigger value="scheduled" className="flex-1">Scheduled</TabsTrigger>
+              <TabsTrigger value="posted" className="flex-1">Posted</TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="scheduled" className="mt-6">
-          {renderPosts(getPostsByStatus("scheduled"))}
-        </TabsContent>
+            <div className="mt-8 min-h-[600px]">
+              <TabsContent value="all" className="h-full">
+                {renderPosts(filteredPosts)}
+              </TabsContent>
 
-        <TabsContent value="posted" className="mt-6">
-          {renderPosts(getPostsByStatus("posted"))}
-        </TabsContent>
-      </Tabs>
+              <TabsContent value="pending" className="h-full">
+                {renderPosts(getPostsByStatus("pending"))}
+              </TabsContent>
+
+              <TabsContent value="scheduled" className="h-full">
+                {renderPosts(getPostsByStatus("scheduled"))}
+              </TabsContent>
+
+              <TabsContent value="posted" className="h-full">
+                {renderPosts(getPostsByStatus("posted"))}
+              </TabsContent>
+            </div>
+          </Tabs>
+        </div>
+      </div>
     </div>
   )
 }
