@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, Suspense } from "react";
+import { useState, useRef, useEffect, Suspense, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
@@ -22,6 +22,40 @@ export default function ImagesPage() {
   const [isPosting, setIsPosting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const [isEnhancing, setIsEnhancing] = useState(false);
+
+  // Function to enhance caption
+  const enhanceCaption = useCallback(async () => {
+    if (!caption.trim()) {
+      setError("Please enter a caption to enhance.");
+      return;
+    }
+
+    setIsEnhancing(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await fetch("/api/enhance-caption", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ caption }),
+      });
+
+      const data = await response.json();
+      if (data.enhancedCaption) {
+        setCaption(data.enhancedCaption);
+        setSuccess("Caption enhanced successfully!");
+      } else {
+        setError(data.error || "Failed to enhance caption.");
+      }
+    } catch (err) {
+      console.error("Error enhancing caption:", err);
+      setError("An error occurred while enhancing the caption.");
+    } finally {
+      setIsEnhancing(false);
+    }
+  }, [caption]);
 
   // Only fetch series on mount, not photos
   useEffect(() => {
@@ -195,11 +229,19 @@ export default function ImagesPage() {
             <div>
               <h2 className="text-lg font-medium mb-4">3. Write Caption</h2>
               <Textarea
-                placeholder="Write your caption here..."
-                className="min-h-[120px] max-h-[120px] resize-none w-[600px]"
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-              />
+                  placeholder="Write your caption here..."
+                  className="min-h-[120px] max-h-[120px] resize-none w-[600px]"
+                  value={caption}
+                  onChange={(e) => setCaption(e.target.value)}
+                />
+                <Button
+                  onClick={enhanceCaption}
+                  disabled={isEnhancing}
+                  className="h-[120px]"
+                  variant="secondary"
+                >
+                  {isEnhancing ? "Enhancing..." : "Enhance Caption"}
+                </Button>
             </div>
           </div>
 
