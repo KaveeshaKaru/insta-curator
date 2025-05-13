@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useRef, useEffect, Suspense } from "react"
+import { useState, useRef, useEffect, Suspense, useCallback } from "react"
 import { CalendarIcon, Clock } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
 import InstagramUsername from "@/components/InstagramUsername"
+import { Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -14,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
+
 
 export default function SchedulePage() {
   const [date, setDate] = useState<Date>()
@@ -30,6 +32,40 @@ export default function SchedulePage() {
   const [isScheduling, setIsScheduling] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
+  const [isEnhancing, setIsEnhancing] = useState(false);
+
+   // Function to enhance caption
+   const enhanceCaption = useCallback(async () => {
+    if (!caption.trim()) {
+      setError("Please enter a caption to enhance.");
+      return;
+    }
+
+    setIsEnhancing(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await fetch("/api/enhance-caption", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ caption }),
+      });
+
+      const data = await response.json();
+      if (data.enhancedCaption) {
+        setCaption(data.enhancedCaption);
+        //setSuccess("Caption enhanced successfully!");
+      } else {
+        //setError(data.error || "Failed to enhance caption.");
+      }
+    } catch (err) {
+      console.error("Error enhancing caption:", err);
+      setError("An error occurred while enhancing the caption.");
+    } finally {
+      setIsEnhancing(false);
+    }
+  }, [caption]);
 
   // Generate all minutes (00–59)
   const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, "0"))
@@ -231,12 +267,41 @@ export default function SchedulePage() {
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <h2 className="text-lg font-medium mb-4">3. Write Caption</h2>
+                <div className="relative">
                 <Textarea
                   placeholder="Write your caption here..."
-                  className="min-h-[120px] max-h-[120px] resize-none"
+                  className="min-h-[120px] max-h-[120px] resize-none w-[400px] pr-24"
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
+                  disabled={isEnhancing}
+                  aria-busy={isEnhancing}
+                  aria-label="Instagram caption input"
                 />
+                {isEnhancing && (
+                  <div className="absolute inset-0 bg-gray-100/60 flex items-center justify-center pointer-events-none">
+                    <div className="w-full h-full animate-pulse bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer" />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className={cn(
+                    "absolute bottom-2 right-2 flex items-center gap-1 text-sm transition-colors",
+                    isEnhancing
+                      ? "text-muted-foreground cursor-not-allowed"
+                      : "text-muted-foreground hover:text-primary cursor-pointer"
+                  )}
+                  onClick={isEnhancing ? undefined : enhanceCaption}
+                  disabled={isEnhancing}
+                  aria-label={isEnhancing ? "Enhancing caption" : "Enhance caption with AI"}
+                >
+                  <span>{isEnhancing ? "Enhancing...😉" : "AI caption"}</span>
+                  {isEnhancing ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
               </div>
 
               <div>
