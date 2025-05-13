@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, Suspense, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -45,9 +46,9 @@ export default function ImagesPage() {
       const data = await response.json();
       if (data.enhancedCaption) {
         setCaption(data.enhancedCaption);
-        setSuccess("Caption enhanced successfully!");
+        //setSuccess("Caption enhanced successfully!");
       } else {
-        setError(data.error || "Failed to enhance caption.");
+        //setError(data.error || "Failed to enhance caption.");
       }
     } catch (err) {
       console.error("Error enhancing caption:", err);
@@ -170,7 +171,7 @@ export default function ImagesPage() {
   return (
     <div className="flex h-screen">
       {/* Left sidebar is handled by the layout component */}
-      
+
       <div className="flex-1 p-6">
         <h1 className="text-2xl font-bold tracking-tight mb-6">Post to Instagram</h1>
 
@@ -187,8 +188,8 @@ export default function ImagesPage() {
                 ref={fileInputRef}
                 onChange={handleImageUpload}
               />
-              <Button 
-                onClick={() => fileInputRef.current?.click()} 
+              <Button
+                onClick={() => fileInputRef.current?.click()}
                 className="mb-4"
                 variant="secondary"
               >
@@ -228,20 +229,41 @@ export default function ImagesPage() {
 
             <div>
               <h2 className="text-lg font-medium mb-4">3. Write Caption</h2>
-              <Textarea
+              <div className="relative">
+                <Textarea
                   placeholder="Write your caption here..."
-                  className="min-h-[120px] max-h-[120px] resize-none w-[600px]"
+                  className="min-h-[120px] max-h-[120px] resize-none w-[600px] pr-24"
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
-                />
-                <Button
-                  onClick={enhanceCaption}
                   disabled={isEnhancing}
-                  className="h-[120px]"
-                  variant="secondary"
+                  aria-busy={isEnhancing}
+                  aria-label="Instagram caption input"
+                />
+                {isEnhancing && (
+                  <div className="absolute inset-0 bg-gray-100/60 flex items-center justify-center pointer-events-none">
+                    <div className="w-full h-full animate-pulse bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer" />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className={cn(
+                    "absolute bottom-2 right-2 flex items-center gap-1 text-sm transition-colors",
+                    isEnhancing
+                      ? "text-muted-foreground cursor-not-allowed"
+                      : "text-muted-foreground hover:text-primary cursor-pointer"
+                  )}
+                  onClick={isEnhancing ? undefined : enhanceCaption}
+                  disabled={isEnhancing}
+                  aria-label={isEnhancing ? "Enhancing caption" : "Enhance caption with AI"}
                 >
-                  {isEnhancing ? "Enhancing..." : "Enhance Caption"}
-                </Button>
+                  <span>{isEnhancing ? "Enhancing...😉" : "AI caption"}</span>
+                  {isEnhancing ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
