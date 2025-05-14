@@ -30,7 +30,6 @@ model User {
   instagramAccessToken      String?    // Facebook user access token
   instagramPageAccessToken  String?    // Page-specific token for Instagram API
   instagramBusinessAccountId String?   // Instagram Business Account ID
-  instagramAccounts         InstagramAccount[] // Relation to Instagram accounts
 
   @@unique([email])
   @@map("user")
@@ -81,44 +80,19 @@ model Verification {
   @@map("verification")
 }
 
-model InstagramAccount {
-  id                        String   @id @default(uuid())
-  userId                    String
-  user                      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  instagramUserId          String   // Instagram's user ID
-  username                 String   // Instagram username
-  accessToken             String   // Facebook user access token
-  pageAccessToken         String   // Page-specific token for Instagram API
-  businessAccountId       String   // Instagram Business Account ID
-  isActive                Boolean  @default(true)
-  lastTokenRefresh        DateTime
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
-  photos                  Photo[]  // Photos associated with this Instagram account
-  posts                   Post[]   // Posts made through this account
-
-  @@unique([instagramUserId])
-  @@unique([userId, username])
-  @@map("instagram_account")
-}
-
 model Photo {
-  id                Int      @id @default(autoincrement())
-  url               String   
-  creator           String?  
-  caption           String?  
-  userId            String   
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  instagramAccountId String? // Optional: Which Instagram account this photo is associated with
-  instagramAccount  InstagramAccount? @relation(fields: [instagramAccountId], references: [id], onDelete: SetNull)
-  seriesId          Int?     
-  series            Series?  @relation(fields: [seriesId], references: [id], onDelete: SetNull)
-  posts             Post[]   
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  sourceUrl         String?  // Original Instagram URL if imported
-  instagramMediaId  String?  // Instagram's media ID if posted
-  
+  id        Int      @id @default(autoincrement())
+  url       String   // URL of the photo (e.g., stored on a CDN or Instagram URL)
+  creator   String?  // Optional: Creator of the photo
+  caption   String?  // Optional: Caption for the photo
+  userId    String   // User who curated the photo
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  seriesId  Int?     // Optional: Series this photo belongs to
+  series    Series?  @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  posts     Post[]   // Posts that use this photo
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@map("photo")
 }
 
@@ -136,23 +110,19 @@ model Series {
 }
 
 model Post {
-  id                Int      @id @default(autoincrement())
-  userId            String   
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  instagramAccountId String  // Which Instagram account to post to
-  instagramAccount  InstagramAccount @relation(fields: [instagramAccountId], references: [id], onDelete: Cascade)
-  photoId           Int      
-  photo             Photo    @relation(fields: [photoId], references: [id], onDelete: Cascade)
-  seriesId          Int?     
-  series            Series?  @relation(fields: [seriesId], references: [id], onDelete: SetNull)
-  scheduledAt       DateTime 
-  status            String   // "pending", "posted", "failed"
-  postedAt          DateTime? 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  errorMessage      String?  // Store error message if posting fails
-  instagramPostId   String?  // Instagram's post ID after successful posting
-  
+  id          Int      @id @default(autoincrement())
+  userId      String   // User who scheduled the post
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photoId     Int      // Photo to be posted
+  photo       Photo    @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  seriesId    Int?     // Optional: Series this post belongs to
+  series      Series?  @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  scheduledAt DateTime // When to post
+  status      String   // "pending", "posted", "failed"
+  postedAt    DateTime? // When the post was actually made
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
   @@map("post")
 }
 
