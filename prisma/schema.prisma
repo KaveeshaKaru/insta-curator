@@ -122,6 +122,7 @@ model Post {
   postedAt    DateTime? // When the post was actually made
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  igMediaId         String?
 
   @@map("post")
 }

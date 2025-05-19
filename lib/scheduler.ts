@@ -3,6 +3,10 @@ import cron from "node-cron";
 import prisma from "@/lib/prisma";
 import axios from "axios";
 
+interface InstagramMediaResponse {
+  id: string;
+}
+
 class Scheduler {
   private static instance: Scheduler;
   private cronJob: cron.ScheduledTask | null = null;
@@ -168,7 +172,7 @@ class Scheduler {
               // Check for rate limit errors
               try {
                 console.log(`Processing post ${post.id} with image URL: ${post.photo.url}`);
-                const mediaRes = await axios.post(
+                const mediaRes = await axios.post<InstagramMediaResponse>(
                   `https://graph.facebook.com/v22.0/${post.user.instagramBusinessAccountId}/media`,
                   {
                     image_url: post.photo.url,
@@ -193,7 +197,11 @@ class Scheduler {
                 // Update post status atomically
                 await prisma.post.update({
                   where: { id: post.id },
-                  data: { status: "posted", postedAt: new Date() },
+                  data: {
+                    status: "posted",
+                    postedAt: new Date(),
+                    igMediaId: creationId, // Save igMediaId
+                  },
                 });
 
                 console.log(`Post ${post.id} published successfully`);

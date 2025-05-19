@@ -3,6 +3,10 @@ import prisma from "@/lib/prisma";
 import axios from "axios";
 import { auth } from "@/lib/auth";
 
+interface InstagramMediaResponse {
+  id: string;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: req.headers });
@@ -29,7 +33,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create media
-    const mediaRes = await axios.post(
+    const mediaRes = await axios.post<InstagramMediaResponse>(
       `https://graph.facebook.com/v22.0/${post.user.instagramBusinessAccountId}/media`,
       {
         image_url: post.photo.url,
@@ -54,7 +58,11 @@ export async function POST(req: NextRequest) {
     // Update post status
     await prisma.post.update({
       where: { id: post.id },
-      data: { status: "posted", postedAt: new Date() },
+      data: {
+        status: "posted",
+        postedAt: new Date(),
+        igMediaId: creationId, // Save igMediaId
+      },
     });
 
     return NextResponse.json({ success: true, postId: post.id });

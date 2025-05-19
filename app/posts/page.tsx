@@ -1,6 +1,6 @@
 "use client"
 
-import { Plus } from "lucide-react"
+import { Plus, Trash2 } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -17,6 +17,7 @@ interface Post {
   status: string
   scheduledAt: string
   postedAt: string | null
+  igMediaId: string | null
   photo: {
     id: number
     url: string
@@ -28,9 +29,13 @@ interface Post {
   } | null
 }
 
-const PostCard = ({ post }: { post: Post }) => {
+interface PostCardProps {
+  post: Post
+}
+
+const PostCard = ({ post }: PostCardProps) => {
   const formattedDate = format(new Date(post.scheduledAt), "MMM d, yyyy 'at' h:mm a")
-  
+
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-0">
@@ -78,9 +83,11 @@ const PostCard = ({ post }: { post: Post }) => {
           )}
         </div>
         <div className="flex justify-between w-full">
-          <Button variant="ghost" size="sm" className="bg-gray-200 hover:bg-gray-300">
-            {post.status === "posted" ? "Repost" : post.status === "pending" ? "Schedule" : "Edit"}
-          </Button>
+          {post.status !== "posted" && (
+            <Button variant="ghost" size="sm" className="bg-gray-200 hover:bg-gray-300">
+              {post.status === "pending" ? "Schedule" : "Edit"}
+            </Button>
+          )}
         </div>
       </CardFooter>
     </Card>
