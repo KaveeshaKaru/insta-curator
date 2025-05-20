@@ -93,26 +93,39 @@ export async function POST(req: NextRequest) {
     `;
 
     try {
-      const axiosInstance = axios.create({ timeout: TIMEOUT });
+      const axiosInstance = axios.create({ 
+        timeout: TIMEOUT,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
 
       if (isCarousel) {
+        console.log('Starting carousel post process...');
+        
         // Upload each media item as a carousel item with timeout
-        const mediaPromises = images.map(async (imageUrl: string) => {
-          const mediaRes = await axiosInstance.post<InstagramMediaResponse>(
-            `https://graph.facebook.com/v22.0/${user.instagramBusinessAccountId}/media`,
-            {
-              image_url: imageUrl,
-              is_carousel_item: true,
-            },
-            {
-              params: { access_token: user.instagramPageAccessToken },
-            }
-          );
-          return mediaRes.data.id;
-        });
+        const mediaIds = [];
+        for (const [index, imageUrl] of images.entries()) {
+          try {
+            console.log(`Uploading image ${index + 1}/${images.length}...`);
+            const mediaRes = await axiosInstance.post<InstagramMediaResponse>(
+              `https://graph.facebook.com/v22.0/${user.instagramBusinessAccountId}/media`,
+              {
+                image_url: imageUrl,
+                is_carousel_item: true,
+                access_token: user.instagramPageAccessToken
+              }
+            );
+            mediaIds.push(mediaRes.data.id);
+            console.log(`Successfully uploaded image ${index + 1}, got media ID: ${mediaRes.data.id}`);
+          } catch (error: any) {
+            console.error(`Error uploading image ${index + 1}:`, error.response?.data || error.message);
+            throw new Error(`Failed to upload image ${index + 1}: ${error.response?.data?.error?.message || error.message}`);
+          }
+        }
 
-        const mediaIds = await Promise.all(mediaPromises);
-
+        console.log('All images uploaded, creating carousel container...');
+        
         // Create carousel container
         const carouselRes = await axiosInstance.post<InstagramMediaResponse>(
           `https://graph.facebook.com/v22.0/${user.instagramBusinessAccountId}/media`,
@@ -120,20 +133,28 @@ export async function POST(req: NextRequest) {
             media_type: "CAROUSEL",
             children: mediaIds,
             caption: caption || "No caption provided",
-          },
-          {
-            params: { access_token: user.instagramPageAccessToken },
+            access_token: user.instagramPageAccessToken
           }
-        );
+        ).catch((error) => {
+          console.error('Error creating carousel:', error.response?.data || error.message);
+          throw new Error(`Failed to create carousel: ${error.response?.data?.error?.message || error.message}`);
+        });
+
+        console.log('Carousel container created, publishing...');
 
         // Publish carousel with timeout
         const publishRes = await axiosInstance.post<InstagramPublishResponse>(
           `https://graph.facebook.com/v22.0/${user.instagramBusinessAccountId}/media_publish`,
-          { creation_id: carouselRes.data.id },
-          {
-            params: { access_token: user.instagramPageAccessToken },
+          { 
+            creation_id: carouselRes.data.id,
+            access_token: user.instagramPageAccessToken
           }
-        );
+        ).catch((error) => {
+          console.error('Error publishing carousel:', error.response?.data || error.message);
+          throw new Error(`Failed to publish carousel: ${error.response?.data?.error?.message || error.message}`);
+        });
+
+        console.log('Carousel published successfully, updating database...');
 
         // Update post status
         await prisma.$executeRaw`
@@ -152,17 +173,15 @@ export async function POST(req: NextRequest) {
           {
             image_url: images[0],
             caption: caption || "No caption provided",
-          },
-          {
-            params: { access_token: user.instagramPageAccessToken },
+            access_token: user.instagramPageAccessToken
           }
         );
 
         const publishRes = await axiosInstance.post<InstagramPublishResponse>(
           `https://graph.facebook.com/v22.0/${user.instagramBusinessAccountId}/media_publish`,
-          { creation_id: mediaRes.data.id },
-          {
-            params: { access_token: user.instagramPageAccessToken },
+          { 
+            creation_id: mediaRes.data.id,
+            access_token: user.instagramPageAccessToken
           }
         );
 
@@ -197,19 +216,25 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({ success: true, postId: post.id });
     } catch (error: any) {
-      // If Instagram API fails, update post status to failed
+      // If Instagram API fails, update post status to failed with detailed error
+      const errorMessage = error.response?.data?.error?.message || error.message;
+      console.error("Detailed error:", {
+        message: errorMessage,
+        response: error.response?.data,
+        stack: error.stack
+      });
+
       await prisma.$executeRaw`
         UPDATE "post"
         SET "status" = 'failed',
-            "error" = ${error.message || "Unknown error"}
+            "error" = ${errorMessage}
         WHERE "id" = ${post.id}
       `;
 
-      console.error("Error publishing to Instagram:", error.response?.data || error.message);
       return NextResponse.json(
         { 
           error: "Failed to publish to Instagram", 
-          details: error.response?.data?.error?.message || error.message 
+          details: errorMessage
         }, 
         { status: 500 }
       );
