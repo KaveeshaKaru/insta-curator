@@ -89,7 +89,7 @@ model Photo {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   seriesId  Int?     // Optional: Series this photo belongs to
   series    Series?  @relation(fields: [seriesId], references: [id], onDelete: SetNull)
-  posts     Post[]   // Posts that use this photo
+  posts     PostPhoto[] // Posts that use this photo
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -110,21 +110,36 @@ model Series {
 }
 
 model Post {
-  id          Int      @id @default(autoincrement())
-  userId      String   // User who scheduled the post
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  photoId     Int      // Photo to be posted
-  photo       Photo    @relation(fields: [photoId], references: [id], onDelete: Cascade)
-  seriesId    Int?     // Optional: Series this post belongs to
-  series      Series?  @relation(fields: [seriesId], references: [id], onDelete: SetNull)
-  scheduledAt DateTime // When to post
-  status      String   // "pending", "posted", "failed"
-  postedAt    DateTime? // When the post was actually made
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  igMediaId         String?
+  id          Int         @id @default(autoincrement())
+  userId      String      // User who scheduled the post
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  seriesId    Int?       // Optional: Series this post belongs to
+  series      Series?    @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  scheduledAt DateTime   // When to post
+  status      String     // "pending", "posted", "failed"
+  postedAt    DateTime?  // When the post was actually made
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  igMediaId   String?
+  isCarousel  Boolean    @default(false)
+  photos      PostPhoto[] // Relation to photos through PostPhoto
+  caption     String?    // Caption for the post
 
   @@map("post")
+}
+
+model PostPhoto {
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  photoId   Int
+  order     Int      // Order in the carousel
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  photo     Photo    @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([postId, order])
+  @@map("post_photo")
 }
 
 model Lock {

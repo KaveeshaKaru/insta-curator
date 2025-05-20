@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect, Suspense, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Sparkles } from "lucide-react";
+import { Sparkles, GripVertical, X } from "lucide-react";
+import { DragDropContext, Droppable, Draggable, type DropResult, type DroppableProvided, type DraggableProvided } from "@hello-pangea/dnd";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,7 +14,7 @@ import { cn } from "@/lib/utils";
 import InstagramUsername from "@/components/InstagramUsername";
 
 export default function ImagesPage() {
-  const [selectedImage, setSelectedImage] = useState<number | null>(null);
+  const [selectedImages, setSelectedImages] = useState<{ id: number; url: string; alt: string }[]>([]);
   const [selectedSeries, setSelectedSeries] = useState<string>("");
   const [caption, setCaption] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -21,9 +22,9 @@ export default function ImagesPage() {
   const [sessionPhotos, setSessionPhotos] = useState<{ id: number; url: string; alt: string }[]>([]);
   const [seriesList, setSeriesList] = useState<{ id: number; name: string }[]>([]);
   const [isPosting, setIsPosting] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
-  const [isEnhancing, setIsEnhancing] = useState(false);
 
   // Function to enhance caption
   const enhanceCaption = useCallback(async () => {
@@ -46,9 +47,6 @@ export default function ImagesPage() {
       const data = await response.json();
       if (data.enhancedCaption) {
         setCaption(data.enhancedCaption);
-        //setSuccess("Caption enhanced successfully!");
-      } else {
-        //setError(data.error || "Failed to enhance caption.");
       }
     } catch (err) {
       console.error("Error enhancing caption:", err);
@@ -76,51 +74,71 @@ export default function ImagesPage() {
   }, []);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    const formData = new FormData();
-    formData.append("file", file);
+    // Check if adding these files would exceed the 10 image limit
+    if (selectedImages.length + files.length > 10) {
+      setError("You can only upload up to 10 images for a carousel post.");
+      return;
+    }
 
-    try {
-      setError(null);
-      const response = await fetch("/api/upload-image", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await response.json();
-      if (data.url) {
-        // Create a Photo record
-        const photoResponse = await fetch("/api/photos", {
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        setError(null);
+        const response = await fetch("/api/upload-image", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: data.url, caption: "Uploaded photo" }),
+          body: formData,
         });
-        const photoData = await photoResponse.json();
-        if (photoData.photo) {
-          const newPhoto = {
-            id: photoData.photo.id,
-            url: photoData.photo.url,
-            alt: photoData.photo.caption || `Photo ${photoData.photo.id}`,
-          };
-          setSessionPhotos((prev) => [...prev, newPhoto]);
-          // Automatically select the newly uploaded image
-          setSelectedImage(photoData.photo.id);
+        const data = await response.json();
+        if (data.url) {
+          const photoResponse = await fetch("/api/photos", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: data.url, caption: "Uploaded photo" }),
+          });
+          const photoData = await photoResponse.json();
+          if (photoData.photo) {
+            const newPhoto = {
+              id: photoData.photo.id,
+              url: photoData.photo.url,
+              alt: photoData.photo.caption || `Photo ${photoData.photo.id}`,
+            };
+            setSessionPhotos((prev) => [...prev, newPhoto]);
+            setSelectedImages((prev) => [...prev, newPhoto]);
+          } else {
+            setError(photoData.error || "Failed to save photo.");
+          }
         } else {
-          setError(photoData.error || "Failed to save photo.");
+          setError(data.error || "Failed to upload image.");
         }
-      } else {
-        setError(data.error || "Failed to upload image.");
+      } catch (err) {
+        console.error("Error uploading image:", err);
+        setError("An error occurred while uploading the image.");
       }
-    } catch (err) {
-      console.error("Error uploading image:", err);
-      setError("An error occurred while uploading the image.");
     }
   };
 
+  const handleRemoveImage = (imageId: number) => {
+    setSelectedImages((prev) => prev.filter((img) => img.id !== imageId));
+  };
+
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+
+    const items = Array.from(selectedImages);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    setSelectedImages(items);
+  };
+
   const handlePostNow = async () => {
-    if (!selectedImage) {
-      setError("Please select an image.");
+    if (selectedImages.length === 0) {
+      setError("Please select at least one image.");
       return;
     }
     if (!caption.trim()) {
@@ -133,30 +151,25 @@ export default function ImagesPage() {
     setIsPosting(true);
 
     try {
-      const photo = sessionPhotos.find((p) => p.id === selectedImage);
-      if (!photo || photo.url.includes("placeholder.svg")) {
-        setError("Please upload a valid image.");
-        return;
-      }
-
       const response = await fetch("/api/instagram/post", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           caption,
-          imageUrl: photo.url,
+          images: selectedImages.map(img => img.url),
           seriesId: selectedSeries || null,
+          isCarousel: selectedImages.length > 1
         }),
       });
 
       const data = await response.json();
       if (data.success) {
         setSuccess("Post published successfully!");
-        // Reset form and remove the posted image from session photos
+        // Reset form and remove the posted images
         setCaption("");
-        setSelectedImage(null);
+        setSelectedImages([]);
         setSelectedSeries("");
-        setSessionPhotos(prev => prev.filter(p => p.id !== selectedImage));
+        setSessionPhotos(prev => prev.filter(p => !selectedImages.some(si => si.id === p.id)));
       } else {
         setError(data.error || "Failed to publish post.");
       }
@@ -179,7 +192,10 @@ export default function ImagesPage() {
           <div className="space-y-6">
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-medium">1. Upload and Select Image</h2>
+                <h2 className="text-lg font-medium">1. Upload Images (Max 10)</h2>
+                <span className="text-sm text-muted-foreground">
+                  {selectedImages.length}/10 images selected
+                </span>
               </div>
               <input
                 type="file"
@@ -187,28 +203,52 @@ export default function ImagesPage() {
                 className="hidden"
                 ref={fileInputRef}
                 onChange={handleImageUpload}
+                multiple
               />
               <Button
                 onClick={() => fileInputRef.current?.click()}
                 className="mb-4"
                 variant="secondary"
+                disabled={selectedImages.length >= 10}
               >
-                Upload Image
+                Upload Images
               </Button>
-              <div className="grid grid-cols-3 gap-2 max-h-[500px] overflow-y-auto p-1">
-                {sessionPhotos.map((photo) => (
-                  <div
-                    key={photo.id}
-                    className={cn(
-                      "relative aspect-square cursor-pointer rounded-md overflow-hidden border-2",
-                      selectedImage === photo.id ? "border-primary" : "border-transparent"
-                    )}
-                    onClick={() => setSelectedImage(photo.id)}
-                  >
-                    <Image src={photo.url} alt={photo.alt} fill className="object-cover" />
-                  </div>
-                ))}
-              </div>
+
+              <DragDropContext onDragEnd={handleDragEnd}>
+                <Droppable droppableId="images" direction="horizontal">
+                  {(provided: DroppableProvided) => (
+                    <div
+                      {...provided.droppableProps}
+                      ref={provided.innerRef}
+                      className="grid grid-cols-3 gap-2 max-h-[500px] overflow-y-auto p-1"
+                    >
+                      {selectedImages.map((photo, index) => (
+                        <Draggable key={photo.id} draggableId={photo.id.toString()} index={index}>
+                          {(provided: DraggableProvided) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              className="relative aspect-square rounded-md overflow-hidden border-2 border-primary group"
+                            >
+                              <div {...provided.dragHandleProps} className="absolute top-2 left-2 z-10">
+                                <GripVertical className="h-5 w-5 text-white opacity-75" />
+                              </div>
+                              <button
+                                onClick={() => handleRemoveImage(photo.id)}
+                                className="absolute top-2 right-2 z-10 p-1 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <X className="h-4 w-4 text-white" />
+                              </button>
+                              <Image src={photo.url} alt={photo.alt} fill className="object-cover" />
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </DragDropContext>
             </div>
 
             <div>
@@ -276,16 +316,23 @@ export default function ImagesPage() {
                 </div>
 
                 <div className="relative aspect-square mb-2">
-                  {selectedImage ? (
-                    <Image
-                      src={sessionPhotos.find(p => p.id === selectedImage)?.url || "/placeholder.svg"}
-                      alt="Selected image"
-                      fill
-                      className="object-cover rounded"
-                    />
+                  {selectedImages.length > 0 ? (
+                    <div className="relative w-full h-full">
+                      <Image
+                        src={selectedImages[0].url}
+                        alt="First selected image"
+                        fill
+                        className="object-cover rounded"
+                      />
+                      {selectedImages.length > 1 && (
+                        <div className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded-full text-xs">
+                          +{selectedImages.length - 1}
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <div className="w-full h-full bg-gray-100 rounded flex items-center justify-center">
-                      <p className="text-muted-foreground">Select an image</p>
+                      <p className="text-muted-foreground">Select images</p>
                     </div>
                   )}
                 </div>

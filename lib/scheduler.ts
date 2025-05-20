@@ -7,6 +7,24 @@ interface InstagramMediaResponse {
   id: string;
 }
 
+interface PostWithRelations {
+  id: number;
+  userId: string;
+  scheduledAt: Date;
+  status: string;
+  user: {
+    instagramBusinessAccountId: string | null;
+    instagramPageAccessToken: string | null;
+  };
+  post_photo: Array<{
+    photo: {
+      id: number;
+      url: string;
+      caption: string | null;
+    };
+  }>;
+}
+
 class Scheduler {
   private static instance: Scheduler;
   private cronJob: cron.ScheduledTask | null = null;
@@ -128,15 +146,36 @@ class Scheduler {
           const now = new Date(new Date().toUTCString()); // Ensure UTC
           console.log("Scheduler running at", now.toISOString());
           
-          // Find posts that are due
-          const posts = await prisma.post.findMany({
-            where: {
-              status: "pending",
-              scheduledAt: { lte: now },
-              id: { notIn: Array.from(this.processingPosts) }
-            },
-            include: { user: true, photo: true },
-          });
+          // Find posts that are due using raw SQL
+          const posts = await prisma.$queryRaw<PostWithRelations[]>`
+            SELECT 
+              p.*,
+              json_build_object(
+                'instagramBusinessAccountId', u."instagramBusinessAccountId",
+                'instagramPageAccessToken', u."instagramPageAccessToken"
+              ) as user,
+              COALESCE(
+                json_agg(
+                  json_build_object(
+                    'photo', json_build_object(
+                      'id', ph.id,
+                      'url', ph.url,
+                      'caption', ph.caption
+                    )
+                  )
+                ) FILTER (WHERE pp.id IS NOT NULL),
+                '[]'
+              ) as post_photo
+            FROM post p
+            JOIN "user" u ON p."userId" = u.id
+            LEFT JOIN post_photo pp ON p.id = pp."postId"
+            LEFT JOIN photo ph ON pp."photoId" = ph.id
+            WHERE p.status = 'pending'
+              AND p."scheduledAt" <= ${now}
+              AND p.id != ALL(${Array.from(this.processingPosts)})
+            GROUP BY p.id, u."instagramBusinessAccountId", u."instagramPageAccessToken"
+            ORDER BY p."scheduledAt" ASC
+          `;
 
           console.log(`Found ${posts.length} posts due for processing`);
 
@@ -171,12 +210,23 @@ class Scheduler {
 
               // Check for rate limit errors
               try {
-                console.log(`Processing post ${post.id} with image URL: ${post.photo.url}`);
+                const firstPhoto = post.post_photo[0]?.photo;
+                if (!firstPhoto) {
+                  console.error(`Post ${post.id} skipped: No photo found`);
+                  await prisma.post.update({
+                    where: { id: post.id },
+                    data: { status: "failed" },
+                  });
+                  this.processingPosts.delete(post.id);
+                  continue;
+                }
+
+                console.log(`Processing post ${post.id} with image URL: ${firstPhoto.url}`);
                 const mediaRes = await axios.post<InstagramMediaResponse>(
                   `https://graph.facebook.com/v22.0/${post.user.instagramBusinessAccountId}/media`,
                   {
-                    image_url: post.photo.url,
-                    caption: post.photo.caption || "No caption provided",
+                    image_url: firstPhoto.url,
+                    caption: firstPhoto.caption || "No caption provided",
                   },
                   {
                     params: { access_token: post.user.instagramPageAccessToken },

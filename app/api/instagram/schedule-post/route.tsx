@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 
+interface PhotoResult {
+  id: number;
+  url: string;
+  caption: string | null;
+}
+
+interface PostResult {
+  id: number;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: req.headers });
@@ -15,25 +25,40 @@ export async function POST(req: NextRequest) {
     }
 
     // Create a Photo record
-    const photo = await prisma.photo.create({
-      data: {
-        url: imageUrl,
-        caption,
-        userId: session.user.id,
-        seriesId: seriesId ? parseInt(seriesId) : null,
-      },
-    });
+    const [photo] = await prisma.$queryRaw<PhotoResult[]>`
+      INSERT INTO "photo" ("url", "caption", "userId", "seriesId", "createdAt", "updatedAt")
+      VALUES (${imageUrl}, ${caption}, ${session.user.id}, ${seriesId ? parseInt(seriesId) : null}, NOW(), NOW())
+      RETURNING *
+    `;
 
     // Create a Post record
-    const post = await prisma.post.create({
-      data: {
-        userId: session.user.id,
-        photoId: photo.id,
-        seriesId: seriesId ? parseInt(seriesId) : null,
-        scheduledAt: new Date(scheduledAt),
-        status: "pending",
-      },
-    });
+    const [post] = await prisma.$queryRaw<PostResult[]>`
+      INSERT INTO "post" (
+        "userId",
+        "seriesId",
+        "scheduledAt",
+        "status",
+        "caption",
+        "createdAt",
+        "updatedAt"
+      )
+      VALUES (
+        ${session.user.id},
+        ${seriesId ? parseInt(seriesId) : null},
+        ${new Date(scheduledAt)},
+        'pending',
+        ${caption},
+        NOW(),
+        NOW()
+      )
+      RETURNING *
+    `;
+
+    // Create post-photo relationship
+    await prisma.$executeRaw`
+      INSERT INTO "post_photo" ("postId", "photoId", "order", "createdAt", "updatedAt")
+      VALUES (${post.id}, ${photo.id}, 0, NOW(), NOW())
+    `;
 
     return NextResponse.json({ success: true, postId: post.id });
   } catch (error: any) {

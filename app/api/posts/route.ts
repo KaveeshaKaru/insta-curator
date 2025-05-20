@@ -12,21 +12,31 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
 
-    const where = {
-      userId: session.user.id,
-      ...(status ? { status } : {}),
-    };
-
-    const posts = await prisma.post.findMany({
-      where,
-      include: {
-        photo: true,
-        series: true,
-      },
-      orderBy: {
-        scheduledAt: "desc",
-      },
-    });
+    const posts = await prisma.$queryRaw`
+      SELECT 
+        p.*,
+        s.*,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'photo', json_build_object(
+                'id', ph.id,
+                'url', ph.url,
+                'caption', ph.caption
+              )
+            )
+          ) FILTER (WHERE pp.id IS NOT NULL),
+          '[]'
+        ) as photos
+      FROM post p
+      LEFT JOIN series s ON p."seriesId" = s.id
+      LEFT JOIN post_photo pp ON p.id = pp."postId"
+      LEFT JOIN photo ph ON pp."photoId" = ph.id
+      WHERE p."userId" = ${session.user.id}
+        ${status ? `AND p.status = ${status}` : ''}
+      GROUP BY p.id, s.id
+      ORDER BY p."scheduledAt" DESC
+    `;
 
     return NextResponse.json({ posts });
   } catch (error: any) {

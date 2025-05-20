@@ -1,10 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import axios from "axios";
 import { auth } from "@/lib/auth";
+import axios from "axios";
 
 interface InstagramMediaResponse {
   id: string;
+}
+
+interface PostWithPhoto {
+  id: number;
+  user: {
+    instagramBusinessAccountId: string | null;
+    instagramPageAccessToken: string | null;
+  };
+  photo: {
+    url: string;
+    caption: string | null;
+  };
 }
 
 export async function POST(req: NextRequest) {
@@ -19,10 +31,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing postId" }, { status: 400 });
     }
 
-    const post = await prisma.post.findUnique({
-      where: { id: parseInt(postId) },
-      include: { user: true, photo: true },
-    });
+    // Get post with user and first photo using raw SQL
+    const [post] = await prisma.$queryRaw<PostWithPhoto[]>`
+      SELECT 
+        p.id,
+        json_build_object(
+          'instagramBusinessAccountId', u."instagramBusinessAccountId",
+          'instagramPageAccessToken', u."instagramPageAccessToken"
+        ) as user,
+        json_build_object(
+          'url', ph.url,
+          'caption', ph.caption
+        ) as photo
+      FROM post p
+      JOIN "user" u ON p."userId" = u.id
+      LEFT JOIN post_photo pp ON p.id = pp."postId"
+      LEFT JOIN photo ph ON pp."photoId" = ph.id
+      WHERE p.id = ${parseInt(postId)}
+      ORDER BY pp.order ASC
+      LIMIT 1
+    `;
 
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
@@ -30,6 +58,10 @@ export async function POST(req: NextRequest) {
 
     if (!post.user.instagramBusinessAccountId || !post.user.instagramPageAccessToken) {
       return NextResponse.json({ error: "Instagram not connected" }, { status: 400 });
+    }
+
+    if (!post.photo) {
+      return NextResponse.json({ error: "No photo found for post" }, { status: 400 });
     }
 
     // Create media
@@ -61,13 +93,13 @@ export async function POST(req: NextRequest) {
       data: {
         status: "posted",
         postedAt: new Date(),
-        igMediaId: creationId, // Save igMediaId
+        igMediaId: creationId,
       },
     });
 
     return NextResponse.json({ success: true, postId: post.id });
   } catch (error: any) {
-    console.error("Error publishing post:", error.response?.data || error.message);
-    return NextResponse.json({ error: "Failed to publish post", details: error.response?.data || error.message }, { status: 500 });
+    console.error("Error publishing post:", error.message);
+    return NextResponse.json({ error: "Failed to publish post" }, { status: 500 });
   }
 }
