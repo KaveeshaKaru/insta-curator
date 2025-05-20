@@ -21,11 +21,29 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
   },
   experimental: {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
+  serverRuntimeConfig: {
+    PROJECT_ROOT: __dirname,
+  },
+  functions: {
+    'api/instagram/post': {
+      maxDuration: 60,
+      memory: 1024,
+    },
   },
 }
 

@@ -3,6 +3,8 @@ import axios from "axios";
 import prisma from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 
+const TIMEOUT = 50000; // 50 seconds timeout
+
 interface InstagramMediaResponse {
   id: string;
 }
@@ -83,34 +85,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Maximum 10 images allowed for carousel" }, { status: 400 });
     }
 
-    // Create Post record first
-    const [post] = await prisma.$queryRaw<PostWithSeries[]>`
+    // Create Post record first with pending status
+    const [post] = await prisma.$queryRaw<{ id: number }[]>`
       INSERT INTO "post" ("userId", "scheduledAt", "status", "createdAt", "updatedAt")
       VALUES (${session.user.id}, NOW(), 'pending', NOW(), NOW())
-      RETURNING *
+      RETURNING id
     `;
 
     try {
+      const axiosInstance = axios.create({ timeout: TIMEOUT });
+
       if (isCarousel) {
-        // Upload each media item as a carousel item
-        const mediaIds = await Promise.all(
-          images.map(async (imageUrl: string) => {
-            const mediaRes = await axios.post<InstagramMediaResponse>(
-              `https://graph.facebook.com/v22.0/${user.instagramBusinessAccountId}/media`,
-              {
-                image_url: imageUrl,
-                is_carousel_item: true,
-              },
-              {
-                params: { access_token: user.instagramPageAccessToken },
-              }
-            );
-            return mediaRes.data.id;
-          })
-        );
+        // Upload each media item as a carousel item with timeout
+        const mediaPromises = images.map(async (imageUrl: string) => {
+          const mediaRes = await axiosInstance.post<InstagramMediaResponse>(
+            `https://graph.facebook.com/v22.0/${user.instagramBusinessAccountId}/media`,
+            {
+              image_url: imageUrl,
+              is_carousel_item: true,
+            },
+            {
+              params: { access_token: user.instagramPageAccessToken },
+            }
+          );
+          return mediaRes.data.id;
+        });
+
+        const mediaIds = await Promise.all(mediaPromises);
 
         // Create carousel container
-        const carouselRes = await axios.post<InstagramMediaResponse>(
+        const carouselRes = await axiosInstance.post<InstagramMediaResponse>(
           `https://graph.facebook.com/v22.0/${user.instagramBusinessAccountId}/media`,
           {
             media_type: "CAROUSEL",
@@ -122,8 +126,8 @@ export async function POST(req: NextRequest) {
           }
         );
 
-        // Publish carousel
-        const publishRes = await axios.post<InstagramPublishResponse>(
+        // Publish carousel with timeout
+        const publishRes = await axiosInstance.post<InstagramPublishResponse>(
           `https://graph.facebook.com/v22.0/${user.instagramBusinessAccountId}/media_publish`,
           { creation_id: carouselRes.data.id },
           {
@@ -131,7 +135,7 @@ export async function POST(req: NextRequest) {
           }
         );
 
-        // Update post with Instagram media ID
+        // Update post status
         await prisma.$executeRaw`
           UPDATE "post"
           SET "igMediaId" = ${publishRes.data.id},
@@ -142,8 +146,8 @@ export async function POST(req: NextRequest) {
           WHERE "id" = ${post.id}
         `;
       } else {
-        // Single image post
-        const mediaRes = await axios.post<InstagramMediaResponse>(
+        // Single image post with timeout
+        const mediaRes = await axiosInstance.post<InstagramMediaResponse>(
           `https://graph.facebook.com/v22.0/${user.instagramBusinessAccountId}/media`,
           {
             image_url: images[0],
@@ -154,7 +158,7 @@ export async function POST(req: NextRequest) {
           }
         );
 
-        const publishRes = await axios.post<InstagramPublishResponse>(
+        const publishRes = await axiosInstance.post<InstagramPublishResponse>(
           `https://graph.facebook.com/v22.0/${user.instagramBusinessAccountId}/media_publish`,
           { creation_id: mediaRes.data.id },
           {
@@ -162,7 +166,7 @@ export async function POST(req: NextRequest) {
           }
         );
 
-        // Update post with Instagram media ID
+        // Update post status
         await prisma.$executeRaw`
           UPDATE "post"
           SET "igMediaId" = ${publishRes.data.id},
@@ -192,19 +196,31 @@ export async function POST(req: NextRequest) {
       );
 
       return NextResponse.json({ success: true, postId: post.id });
-    } catch (error) {
-      // If Instagram posting fails, update post status to failed
+    } catch (error: any) {
+      // If Instagram API fails, update post status to failed
       await prisma.$executeRaw`
         UPDATE "post"
-        SET "status" = 'failed'
+        SET "status" = 'failed',
+            "error" = ${error.message || "Unknown error"}
         WHERE "id" = ${post.id}
       `;
-      throw error;
+
+      console.error("Error publishing to Instagram:", error.response?.data || error.message);
+      return NextResponse.json(
+        { 
+          error: "Failed to publish to Instagram", 
+          details: error.response?.data?.error?.message || error.message 
+        }, 
+        { status: 500 }
+      );
     }
   } catch (error: any) {
-    console.error("Error posting to Instagram:", error.response?.data || error.message);
+    console.error("Error in post route:", error);
     return NextResponse.json(
-      { error: "Failed to post to Instagram", details: error.response?.data || error.message },
+      { 
+        error: "An error occurred while publishing the post",
+        details: error.message 
+      }, 
       { status: 500 }
     );
   }
