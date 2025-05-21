@@ -84,41 +84,41 @@ export default function ImagesPage() {
     }
 
     for (const file of files) {
-      const formData = new FormData();
-      formData.append("file", file);
+    const formData = new FormData();
+    formData.append("file", file);
 
-      try {
-        setError(null);
-        const response = await fetch("/api/upload-image", {
+    try {
+      setError(null);
+      const response = await fetch("/api/upload-image", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await response.json();
+      if (data.url) {
+        const photoResponse = await fetch("/api/photos", {
           method: "POST",
-          body: formData,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: data.url, caption: "Uploaded photo" }),
         });
-        const data = await response.json();
-        if (data.url) {
-          const photoResponse = await fetch("/api/photos", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url: data.url, caption: "Uploaded photo" }),
-          });
-          const photoData = await photoResponse.json();
-          if (photoData.photo) {
-            const newPhoto = {
-              id: photoData.photo.id,
-              url: photoData.photo.url,
-              alt: photoData.photo.caption || `Photo ${photoData.photo.id}`,
-            };
-            setSessionPhotos((prev) => [...prev, newPhoto]);
+        const photoData = await photoResponse.json();
+        if (photoData.photo) {
+          const newPhoto = {
+            id: photoData.photo.id,
+            url: photoData.photo.url,
+            alt: photoData.photo.caption || `Photo ${photoData.photo.id}`,
+          };
+          setSessionPhotos((prev) => [...prev, newPhoto]);
             setSelectedImages((prev) => [...prev, newPhoto]);
-          } else {
-            setError(photoData.error || "Failed to save photo.");
-          }
         } else {
-          setError(data.error || "Failed to upload image.");
+          setError(photoData.error || "Failed to save photo.");
         }
-      } catch (err) {
-        console.error("Error uploading image:", err);
-        setError("An error occurred while uploading the image.");
+      } else {
+        setError(data.error || "Failed to upload image.");
       }
+    } catch (err) {
+      console.error("Error uploading image:", err);
+      setError("An error occurred while uploading the image.");
+    }
     }
   };
 
@@ -225,7 +225,7 @@ export default function ImagesPage() {
                       {selectedImages.map((photo, index) => (
                         <Draggable key={photo.id} draggableId={photo.id.toString()} index={index}>
                           {(provided: DraggableProvided) => (
-                            <div
+                  <div
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               className="relative aspect-square rounded-md overflow-hidden border-2 border-primary group"
@@ -239,13 +239,13 @@ export default function ImagesPage() {
                               >
                                 <X className="h-4 w-4 text-white" />
                               </button>
-                              <Image src={photo.url} alt={photo.alt} fill className="object-cover" />
-                            </div>
+                    <Image src={photo.url} alt={photo.alt} fill className="object-cover" />
+                  </div>
                           )}
                         </Draggable>
-                      ))}
+                ))}
                       {provided.placeholder}
-                    </div>
+              </div>
                   )}
                 </Droppable>
               </DragDropContext>
@@ -318,12 +318,12 @@ export default function ImagesPage() {
                 <div className="relative aspect-square mb-2">
                   {selectedImages.length > 0 ? (
                     <div className="relative w-full h-full">
-                      <Image
+                    <Image
                         src={selectedImages[0].url}
                         alt="First selected image"
-                        fill
-                        className="object-cover rounded"
-                      />
+                      fill
+                      className="object-cover rounded"
+                    />
                       {selectedImages.length > 1 && (
                         <div className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded-full text-xs">
                           +{selectedImages.length - 1}

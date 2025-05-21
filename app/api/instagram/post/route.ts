@@ -87,8 +87,8 @@ export async function POST(req: NextRequest) {
 
     // Create Post record first with pending status
     const [post] = await prisma.$queryRaw<{ id: number }[]>`
-      INSERT INTO "post" ("userId", "scheduledAt", "status", "createdAt", "updatedAt")
-      VALUES (${session.user.id}, NOW(), 'pending', NOW(), NOW())
+      INSERT INTO "post" ("userId", "scheduledAt", "status", "createdAt", "updatedAt", "isCarousel")
+      VALUES (${session.user.id}, NOW(), 'pending', NOW(), NOW(), ${isCarousel})
       RETURNING id
     `;
 
@@ -99,6 +99,8 @@ export async function POST(req: NextRequest) {
           'Content-Type': 'application/json'
         }
       });
+
+      let publishRes;
 
       if (isCarousel) {
         console.log('Starting carousel post process...');
@@ -142,8 +144,8 @@ export async function POST(req: NextRequest) {
 
         console.log('Carousel container created, publishing...');
 
-        // Publish carousel with timeout
-        const publishRes = await axiosInstance.post<InstagramPublishResponse>(
+        // Publish carousel
+        publishRes = await axiosInstance.post<InstagramPublishResponse>(
           `https://graph.facebook.com/v22.0/${user.instagramBusinessAccountId}/media_publish`,
           { 
             creation_id: carouselRes.data.id,
@@ -154,20 +156,11 @@ export async function POST(req: NextRequest) {
           throw new Error(`Failed to publish carousel: ${error.response?.data?.error?.message || error.message}`);
         });
 
-        console.log('Carousel published successfully, updating database...');
-
-        // Update post status
-        await prisma.$executeRaw`
-          UPDATE "post"
-          SET "igMediaId" = ${publishRes.data.id},
-              "status" = 'posted',
-              "postedAt" = NOW(),
-              "caption" = ${caption || null},
-              "isCarousel" = true
-          WHERE "id" = ${post.id}
-        `;
+        console.log('Carousel published successfully');
       } else {
-        // Single image post with timeout
+        // Single image post
+        console.log('Starting single image post process...');
+        
         const mediaRes = await axiosInstance.post<InstagramMediaResponse>(
           `https://graph.facebook.com/v22.0/${user.instagramBusinessAccountId}/media`,
           {
@@ -175,26 +168,36 @@ export async function POST(req: NextRequest) {
             caption: caption || "No caption provided",
             access_token: user.instagramPageAccessToken
           }
-        );
+        ).catch((error) => {
+          console.error('Error creating media:', error.response?.data || error.message);
+          throw new Error(`Failed to create media: ${error.response?.data?.error?.message || error.message}`);
+        });
 
-        const publishRes = await axiosInstance.post<InstagramPublishResponse>(
+        console.log('Image uploaded, publishing...');
+
+        publishRes = await axiosInstance.post<InstagramPublishResponse>(
           `https://graph.facebook.com/v22.0/${user.instagramBusinessAccountId}/media_publish`,
           { 
             creation_id: mediaRes.data.id,
             access_token: user.instagramPageAccessToken
           }
-        );
+        ).catch((error) => {
+          console.error('Error publishing media:', error.response?.data || error.message);
+          throw new Error(`Failed to publish media: ${error.response?.data?.error?.message || error.message}`);
+        });
 
-        // Update post status
-        await prisma.$executeRaw`
-          UPDATE "post"
-          SET "igMediaId" = ${publishRes.data.id},
-              "status" = 'posted',
-              "postedAt" = NOW(),
-              "caption" = ${caption || null}
-          WHERE "id" = ${post.id}
-        `;
+        console.log('Image published successfully');
       }
+
+      // Update post status
+      await prisma.$executeRaw`
+        UPDATE "post"
+        SET "igMediaId" = ${publishRes.data.id},
+            "status" = 'posted',
+            "postedAt" = NOW(),
+            "caption" = ${caption || null}
+        WHERE "id" = ${post.id}
+      `;
 
       // Create photos and post-photo relationships
       await Promise.all(
