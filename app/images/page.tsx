@@ -12,30 +12,35 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import InstagramUsername from "@/components/InstagramUsername";
+import { useToast } from "@/components/ui/use-toast";
+import { Toaster } from "@/components/ui/toaster";
+import { LoadingDialog } from "@/components/ui/loading-dialog";
 
 export default function ImagesPage() {
   const [selectedImages, setSelectedImages] = useState<{ id: number; url: string; alt: string }[]>([]);
   const [selectedSeries, setSelectedSeries] = useState<string>("");
   const [caption, setCaption] = useState<string>("");
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [sessionPhotos, setSessionPhotos] = useState<{ id: number; url: string; alt: string }[]>([]);
   const [seriesList, setSeriesList] = useState<{ id: number; name: string }[]>([]);
   const [isPosting, setIsPosting] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const { toast } = useToast();
 
   // Function to enhance caption
   const enhanceCaption = useCallback(async () => {
     if (!caption.trim()) {
-      setError("Please enter a caption to enhance.");
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter a caption to enhance."
+      });
       return;
     }
 
     setIsEnhancing(true);
-    setError(null);
-    setSuccess(null);
 
     try {
       const response = await fetch("/api/enhance-caption", {
@@ -47,14 +52,22 @@ export default function ImagesPage() {
       const data = await response.json();
       if (data.enhancedCaption) {
         setCaption(data.enhancedCaption);
+        toast({
+          title: "Success",
+          description: "Caption enhanced successfully!"
+        });
       }
     } catch (err) {
       console.error("Error enhancing caption:", err);
-      setError("An error occurred while enhancing the caption.");
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An error occurred while enhancing the caption."
+      });
     } finally {
       setIsEnhancing(false);
     }
-  }, [caption]);
+  }, [caption, toast]);
 
   // Only fetch series on mount, not photos
   useEffect(() => {
@@ -67,11 +80,15 @@ export default function ImagesPage() {
         }
       } catch (err) {
         console.error("Error fetching series:", err);
-        setError("Failed to load series.");
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load series."
+        });
       }
     }
     fetchSeries();
-  }, []);
+  }, [toast]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -79,46 +96,61 @@ export default function ImagesPage() {
 
     // Check if adding these files would exceed the 10 image limit
     if (selectedImages.length + files.length > 10) {
-      setError("You can only upload up to 10 images for a carousel post.");
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "You can only upload up to 10 images for a carousel post."
+      });
       return;
     }
 
     for (const file of files) {
-    const formData = new FormData();
-    formData.append("file", file);
+      const formData = new FormData();
+      formData.append("file", file);
 
-    try {
-      setError(null);
-      const response = await fetch("/api/upload-image", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await response.json();
-      if (data.url) {
-        const photoResponse = await fetch("/api/photos", {
+      try {
+        const response = await fetch("/api/upload-image", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: data.url, caption: "Uploaded photo" }),
+          body: formData,
         });
-        const photoData = await photoResponse.json();
-        if (photoData.photo) {
-          const newPhoto = {
-            id: photoData.photo.id,
-            url: photoData.photo.url,
-            alt: photoData.photo.caption || `Photo ${photoData.photo.id}`,
-          };
-          setSessionPhotos((prev) => [...prev, newPhoto]);
+        const data = await response.json();
+        if (data.url) {
+          const photoResponse = await fetch("/api/photos", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: data.url, caption: "Uploaded photo" }),
+          });
+          const photoData = await photoResponse.json();
+          if (photoData.photo) {
+            const newPhoto = {
+              id: photoData.photo.id,
+              url: photoData.photo.url,
+              alt: photoData.photo.caption || `Photo ${photoData.photo.id}`,
+            };
+            setSessionPhotos((prev) => [...prev, newPhoto]);
             setSelectedImages((prev) => [...prev, newPhoto]);
+          } else {
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: photoData.error || "Failed to save photo."
+            });
+          }
         } else {
-          setError(photoData.error || "Failed to save photo.");
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: data.error || "Failed to upload image."
+          });
         }
-      } else {
-        setError(data.error || "Failed to upload image.");
+      } catch (err) {
+        console.error("Error uploading image:", err);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "An error occurred while uploading the image."
+        });
       }
-    } catch (err) {
-      console.error("Error uploading image:", err);
-      setError("An error occurred while uploading the image.");
-    }
     }
   };
 
@@ -138,17 +170,24 @@ export default function ImagesPage() {
 
   const handlePostNow = async () => {
     if (selectedImages.length === 0) {
-      setError("Please select at least one image.");
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please select at least one image.🥹"
+      });
       return;
     }
     if (!caption.trim()) {
-      setError("Please enter a caption.");
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter a caption.🤓"
+      });
       return;
     }
 
-    setError(null);
-    setSuccess(null);
     setIsPosting(true);
+    setLoadingMessage("Publishing your post to Instagram... 📱✨");
 
     try {
       const response = await fetch("/api/instagram/post", {
@@ -164,25 +203,39 @@ export default function ImagesPage() {
 
       const data = await response.json();
       if (data.success) {
-        setSuccess("Post published successfully!");
+        toast({
+          title: "Success",
+          description: "Post published successfully 🥰 !"
+        });
         // Reset form and remove the posted images
         setCaption("");
         setSelectedImages([]);
         setSelectedSeries("");
         setSessionPhotos(prev => prev.filter(p => !selectedImages.some(si => si.id === p.id)));
       } else {
-        setError(data.error || "Failed to publish post.");
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: data.error || "Failed to publish post 😔."
+        });
       }
     } catch (err) {
       console.error("Error publishing post:", err);
-      setError("An error occurred while publishing the post.");
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An error occurred while publishing the post 🤕 ."
+      });
     } finally {
       setIsPosting(false);
+      setLoadingMessage("");
     }
   };
 
   return (
     <div className="flex h-screen">
+      <Toaster />
+      <LoadingDialog isOpen={isPosting} message={loadingMessage} />
       {/* Left sidebar is handled by the layout component */}
 
       <div className="flex-1 p-6">
@@ -225,7 +278,7 @@ export default function ImagesPage() {
                       {selectedImages.map((photo, index) => (
                         <Draggable key={photo.id} draggableId={photo.id.toString()} index={index}>
                           {(provided: DraggableProvided) => (
-                  <div
+                            <div
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               className="relative aspect-square rounded-md overflow-hidden border-2 border-primary group"
@@ -239,13 +292,13 @@ export default function ImagesPage() {
                               >
                                 <X className="h-4 w-4 text-white" />
                               </button>
-                    <Image src={photo.url} alt={photo.alt} fill className="object-cover" />
-                  </div>
+                              <Image src={photo.url} alt={photo.alt} fill className="object-cover" />
+                            </div>
                           )}
                         </Draggable>
-                ))}
+                      ))}
                       {provided.placeholder}
-              </div>
+                    </div>
                   )}
                 </Droppable>
               </DragDropContext>
@@ -318,12 +371,12 @@ export default function ImagesPage() {
                 <div className="relative aspect-square mb-2">
                   {selectedImages.length > 0 ? (
                     <div className="relative w-full h-full">
-                    <Image
+                      <Image
                         src={selectedImages[0].url}
                         alt="First selected image"
-                      fill
-                      className="object-cover rounded"
-                    />
+                        fill
+                        className="object-cover rounded"
+                      />
                       {selectedImages.length > 1 && (
                         <div className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded-full text-xs">
                           +{selectedImages.length - 1}
@@ -342,13 +395,6 @@ export default function ImagesPage() {
                 )}
               </CardContent>
             </Card>
-
-            {(error || success) && (
-              <div className="mt-4">
-                {error && <p className="text-red-600">{error}</p>}
-                {success && <p className="text-green-600">{success}</p>}
-              </div>
-            )}
 
             <div className="flex gap-2 mt-4">
               <Button variant="outline" onClick={() => router.push('/schedule')} className="flex-1">
