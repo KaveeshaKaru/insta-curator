@@ -1,6 +1,6 @@
 "use client"
 
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, ImageIcon } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
@@ -12,17 +12,21 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 
+interface Photo {
+  id: number
+  url: string
+  caption: string | null
+}
+
 interface Post {
   id: number
   status: string
   scheduledAt: string
   postedAt: string | null
   igMediaId: string | null
-  photo: {
-    id: number
-    url: string
-    caption: string | null
-  }
+  isCarousel: boolean
+  caption: string | null
+  photos: Photo[]
   series: {
     id: number
     name: string
@@ -35,18 +39,33 @@ interface PostCardProps {
 
 const PostCard = ({ post }: PostCardProps) => {
   const formattedDate = format(new Date(post.scheduledAt), "MMM d, yyyy 'at' h:mm a")
+  const mainPhoto = post.photos[0]
 
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-0">
         <div className="relative aspect-square">
-          <Image
-            src={post.photo.url || `/placeholder.svg?height=300&width=300`}
-            alt={post.photo.caption || "Curated image"}
-            fill
-            className="object-cover"
-          />
-          <div className="absolute top-2 right-2">
+          {mainPhoto ? (
+            <>
+              <Image
+                src={mainPhoto.url}
+                alt={mainPhoto.caption || "Post image"}
+                fill
+                className="object-cover"
+              />
+              {post.isCarousel && post.photos.length > 1 && (
+                <div className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
+                  <ImageIcon size={12} />
+                  +{post.photos.length - 1}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+              <ImageIcon className="w-12 h-12 text-gray-400" />
+            </div>
+          )}
+          <div className="absolute top-2 left-2">
             {post.status === "scheduled" && (
               <Badge className="bg-primary text-primary-foreground">Scheduled</Badge>
             )}
@@ -59,7 +78,7 @@ const PostCard = ({ post }: PostCardProps) => {
           </div>
         </div>
       </CardContent>
-      <CardHeader className="p-14 pb-0">
+      <CardHeader className="p-4 pb-0">
         <div className="flex justify-between items-start w-full">
           <div>
             <CardTitle className="text-lg font-medium">
@@ -73,7 +92,7 @@ const PostCard = ({ post }: PostCardProps) => {
       </CardHeader>
       <CardContent className="p-4 pt-2">
         <p className="text-sm text-muted-foreground line-clamp-2">
-          {post.photo.caption || "No caption"}
+          {post.caption || "No caption"}
         </p>
       </CardContent>
       <CardFooter className="flex flex-col items-start p-4 pt-0 space-y-2">
@@ -115,7 +134,7 @@ export default function PostsPage() {
       <p className="text-sm text-gray-500 mb-6 text-center max-w-md">
         Get started by adding some images to your collection. You can upload images and schedule them for posting.
       </p>
-      <Button variant="outline" size="lg" onClick={() => router.push("/schedule")}>
+      <Button variant="outline" size="lg" onClick={() => router.push("/images")}>
         <Plus className="w-4 h-4 mr-2" />
         Upload Images
       </Button>
@@ -151,7 +170,7 @@ export default function PostsPage() {
   useEffect(() => {
     if (searchQuery.trim()) {
       const filtered = allPosts.filter(post => 
-        post.photo.caption?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        post.caption?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.series?.name.toLowerCase().includes(searchQuery.toLowerCase())
       )
       setFilteredPosts(filtered)
@@ -207,7 +226,7 @@ export default function PostsPage() {
       <div className="flex-1 container mx-auto max-w-[1600px] py-8 px-4 space-y-8">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold tracking-tight">Posts</h1>
-          <Button onClick={() => router.push("/schedule")}>
+          <Button onClick={() => router.push("/images")}>
             <Plus className="w-4 h-4 mr-2" />
             Add New Image
           </Button>
