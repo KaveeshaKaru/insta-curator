@@ -19,19 +19,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { caption, imageUrl, scheduledAt, seriesId } = await req.json();
-    if (!caption || !imageUrl || !scheduledAt) {
+    const { caption, images, scheduledAt, seriesId, isCarousel = false } = await req.json();
+    if (!caption || !images || !scheduledAt || !Array.isArray(images) || images.length === 0) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Create a Photo record
-    const [photo] = await prisma.$queryRaw<PhotoResult[]>`
-      INSERT INTO "photo" ("url", "caption", "userId", "seriesId", "createdAt", "updatedAt")
-      VALUES (${imageUrl}, ${caption}, ${session.user.id}, ${seriesId ? parseInt(seriesId) : null}, NOW(), NOW())
-      RETURNING *
-    `;
-
-    // Create a Post record
+    // Create a Post record first
     const [post] = await prisma.$queryRaw<PostResult[]>`
       INSERT INTO "post" (
         "userId",
@@ -39,6 +32,7 @@ export async function POST(req: NextRequest) {
         "scheduledAt",
         "status",
         "caption",
+        "isCarousel",
         "createdAt",
         "updatedAt"
       )
@@ -48,17 +42,30 @@ export async function POST(req: NextRequest) {
         ${new Date(scheduledAt)},
         'pending',
         ${caption},
+        ${isCarousel},
         NOW(),
         NOW()
       )
       RETURNING *
     `;
 
-    // Create post-photo relationship
-    await prisma.$executeRaw`
-      INSERT INTO "post_photo" ("postId", "photoId", "order", "createdAt", "updatedAt")
-      VALUES (${post.id}, ${photo.id}, 0, NOW(), NOW())
-    `;
+    // Create Photo records and post-photo relationships for each image
+    for (let i = 0; i < images.length; i++) {
+      const imageUrl = images[i];
+      
+      // Create Photo record
+      const [photo] = await prisma.$queryRaw<PhotoResult[]>`
+        INSERT INTO "photo" ("url", "caption", "userId", "seriesId", "createdAt", "updatedAt")
+        VALUES (${imageUrl}, ${caption}, ${session.user.id}, ${seriesId ? parseInt(seriesId) : null}, NOW(), NOW())
+        RETURNING *
+      `;
+
+      // Create post-photo relationship with order
+      await prisma.$executeRaw`
+        INSERT INTO "post_photo" ("postId", "photoId", "order", "createdAt", "updatedAt")
+        VALUES (${post.id}, ${photo.id}, ${i}, NOW(), NOW())
+      `;
+    }
 
     return NextResponse.json({ success: true, postId: post.id });
   } catch (error: any) {

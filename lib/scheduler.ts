@@ -12,11 +12,13 @@ interface PostWithRelations {
   userId: string;
   scheduledAt: Date;
   status: string;
+  isCarousel: boolean;
   user: {
     instagramBusinessAccountId: string | null;
     instagramPageAccessToken: string | null;
   };
   post_photo: Array<{
+    order: number;
     photo: {
       id: number;
       url: string;
@@ -157,12 +159,13 @@ class Scheduler {
               COALESCE(
                 json_agg(
                   json_build_object(
+                    'order', pp."order",
                     'photo', json_build_object(
                       'id', ph.id,
                       'url', ph.url,
                       'caption', ph.caption
                     )
-                  )
+                  ) ORDER BY pp."order"
                 ) FILTER (WHERE pp.id IS NOT NULL),
                 '[]'
               ) as post_photo
@@ -210,9 +213,9 @@ class Scheduler {
 
               // Check for rate limit errors
               try {
-                const firstPhoto = post.post_photo[0]?.photo;
-                if (!firstPhoto) {
-                  console.error(`Post ${post.id} skipped: No photo found`);
+                const photos = post.post_photo.sort((a, b) => a.order - b.order);
+                if (photos.length === 0) {
+                  console.error(`Post ${post.id} skipped: No photos found`);
                   await prisma.post.update({
                     where: { id: post.id },
                     data: { status: "failed" },
@@ -221,28 +224,90 @@ class Scheduler {
                   continue;
                 }
 
-                console.log(`Processing post ${post.id} with image URL: ${firstPhoto.url}`);
-                const mediaRes = await axios.post<InstagramMediaResponse>(
-                  `https://graph.facebook.com/v22.0/${post.user.instagramBusinessAccountId}/media`,
-                  {
-                    image_url: firstPhoto.url,
-                    caption: firstPhoto.caption || "No caption provided",
-                  },
-                  {
-                    params: { access_token: post.user.instagramPageAccessToken },
+                let creationId;
+                if (post.isCarousel && photos.length > 1) {
+                  console.log('Starting carousel post process...');
+                  
+                  // Create axios instance with timeout
+                  const axiosInstance = axios.create({
+                    timeout: 30000, // 30 seconds
+                    headers: {
+                      'Content-Type': 'application/json'
+                    }
+                  });
+                  
+                  // Upload each media item as a carousel item with timeout
+                  const mediaIds = [];
+                  for (const [index, photo] of photos.entries()) {
+                    try {
+                      console.log(`Uploading image ${index + 1}/${photos.length}...`);
+                      const mediaRes = await axiosInstance.post<InstagramMediaResponse>(
+                        `https://graph.facebook.com/v22.0/${post.user.instagramBusinessAccountId}/media`,
+                        {
+                          image_url: photo.photo.url,
+                          is_carousel_item: true,
+                          access_token: post.user.instagramPageAccessToken
+                        }
+                      );
+                      mediaIds.push(mediaRes.data.id);
+                      console.log(`Successfully uploaded image ${index + 1}, got media ID: ${mediaRes.data.id}`);
+                    } catch (error: any) {
+                      console.error(`Error uploading image ${index + 1}:`, error.response?.data || error.message);
+                      throw new Error(`Failed to upload image ${index + 1}: ${error.response?.data?.error?.message || error.message}`);
+                    }
                   }
-                );
 
-                const creationId = mediaRes.data.id;
+                  console.log('All images uploaded, creating carousel container...');
+                  
+                  // Create carousel container
+                  const carouselRes = await axiosInstance.post<InstagramMediaResponse>(
+                    `https://graph.facebook.com/v22.0/${post.user.instagramBusinessAccountId}/media`,
+                    {
+                      media_type: "CAROUSEL",
+                      children: mediaIds,
+                      caption: photos[0].photo.caption || "No caption provided",
+                      access_token: post.user.instagramPageAccessToken
+                    }
+                  ).catch((error) => {
+                    console.error('Error creating carousel:', error.response?.data || error.message);
+                    throw new Error(`Failed to create carousel: ${error.response?.data?.error?.message || error.message}`);
+                  });
+
+                  console.log('Carousel container created, publishing...');
+                  creationId = carouselRes.data.id;
+                } else {
+                  // Single photo post
+                  console.log('Starting single image post process...');
+                  
+                  const mediaRes = await axios.post<InstagramMediaResponse>(
+                    `https://graph.facebook.com/v22.0/${post.user.instagramBusinessAccountId}/media`,
+                    {
+                      image_url: photos[0].photo.url,
+                      caption: photos[0].photo.caption || "No caption provided",
+                      access_token: post.user.instagramPageAccessToken
+                    }
+                  ).catch((error) => {
+                    console.error('Error creating media:', error.response?.data || error.message);
+                    throw new Error(`Failed to create media: ${error.response?.data?.error?.message || error.message}`);
+                  });
+
+                  console.log('Image uploaded, publishing...');
+                  creationId = mediaRes.data.id;
+                }
+
                 console.log(`Post ${post.id} media created with ID: ${creationId}`);
 
+                // Publish media
                 const publishRes = await axios.post(
                   `https://graph.facebook.com/v22.0/${post.user.instagramBusinessAccountId}/media_publish`,
-                  { creation_id: creationId },
-                  {
-                    params: { access_token: post.user.instagramPageAccessToken },
+                  { 
+                    creation_id: creationId,
+                    access_token: post.user.instagramPageAccessToken
                   }
-                );
+                ).catch((error) => {
+                  console.error('Error publishing media:', error.response?.data || error.message);
+                  throw new Error(`Failed to publish media: ${error.response?.data?.error?.message || error.message}`);
+                });
 
                 // Update post status atomically
                 await prisma.post.update({
@@ -250,7 +315,7 @@ class Scheduler {
                   data: {
                     status: "posted",
                     postedAt: new Date(),
-                    igMediaId: creationId, // Save igMediaId
+                    igMediaId: creationId,
                   },
                 });
 

@@ -1,12 +1,13 @@
 "use client"
 
 import { useState, useRef, useEffect, Suspense, useCallback } from "react"
-import { CalendarIcon, Clock } from "lucide-react"
+import { CalendarIcon, Clock, GripVertical, X } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
+import { DragDropContext, Droppable, Draggable, type DropResult, type DroppableProvided, type DraggableProvided } from "@hello-pangea/dnd"
 import InstagramUsername from "@/components/InstagramUsername"
-import { Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -15,57 +16,66 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
-
+import { useToast } from "@/components/ui/use-toast"
+import { Toaster } from "@/components/ui/toaster"
+import { LoadingDialog } from "@/components/ui/loading-dialog"
 
 export default function SchedulePage() {
   const [date, setDate] = useState<Date>()
   const [hour, setHour] = useState<string>("")
   const [minute, setMinute] = useState<string>("")
   const [ampm, setAmpm] = useState<string>("")
-  const [selectedImage, setSelectedImage] = useState<number | null>(null)
+  const [selectedImages, setSelectedImages] = useState<{ id: number; url: string; alt: string }[]>([])
   const [selectedSeries, setSelectedSeries] = useState<string>("")
   const [caption, setCaption] = useState<string>("")
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
   const [sessionPhotos, setSessionPhotos] = useState<{ id: number; url: string; alt: string }[]>([])
   const [seriesList, setSeriesList] = useState<{ id: number; name: string }[]>([])
   const [isScheduling, setIsScheduling] = useState(false)
+  const [isEnhancing, setIsEnhancing] = useState(false)
+  const [loadingMessage, setLoadingMessage] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
-  const [isEnhancing, setIsEnhancing] = useState(false);
+  const { toast } = useToast()
 
-   // Function to enhance caption
-   const enhanceCaption = useCallback(async () => {
+  // Function to enhance caption
+  const enhanceCaption = useCallback(async () => {
     if (!caption.trim()) {
-      setError("Please enter a caption to enhance.");
-      return;
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter a caption to enhance.🤓"
+      })
+      return
     }
 
-    setIsEnhancing(true);
-    setError(null);
-    setSuccess(null);
+    setIsEnhancing(true)
 
     try {
       const response = await fetch("/api/enhance-caption", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ caption }),
-      });
+      })
 
-      const data = await response.json();
+      const data = await response.json()
       if (data.enhancedCaption) {
-        setCaption(data.enhancedCaption);
-        //setSuccess("Caption enhanced successfully!");
-      } else {
-        //setError(data.error || "Failed to enhance caption.");
+        setCaption(data.enhancedCaption)
+        toast({
+          title: "Success",
+          description: "Caption enhanced successfully! ✨"
+        })
       }
     } catch (err) {
-      console.error("Error enhancing caption:", err);
-      setError("An error occurred while enhancing the caption.");
+      console.error("Error enhancing caption:", err)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An error occurred while enhancing the caption.😔"
+      })
     } finally {
-      setIsEnhancing(false);
+      setIsEnhancing(false)
     }
-  }, [caption]);
+  }, [caption, toast])
 
   // Generate all minutes (00–59)
   const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, "0"))
@@ -81,52 +91,69 @@ export default function SchedulePage() {
         }
       } catch (err) {
         console.error("Error fetching series:", err)
-        setError("Failed to load series.")
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load series.😕"
+        })
       }
     }
     fetchSeries()
-  }, [])
+  }, [toast])
 
   const handleSchedulePost = async () => {
-    if (!selectedImage) {
-      setError("Please select an image.")
+    if (selectedImages.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please select at least one image.🥹"
+      })
       return
     }
     if (!caption.trim()) {
-      setError("Please enter a caption.")
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter a caption.🤓"
+      })
       return
     }
     if (!date) {
-      setError("Please select a date.")
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please select a date.📅"
+      })
       return
     }
     if (!hour || !minute || !ampm) {
-      setError("Please select a time.")
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please select a time.⏰"
+      })
       return
     }
 
-    setError(null)
-    setSuccess(null)
     setIsScheduling(true)
+    setLoadingMessage("Scheduling your post... 📅✨")
 
     try {
-      const photo = sessionPhotos.find((p) => p.id === selectedImage)
-      if (!photo || photo.url.includes("placeholder.svg")) {
-        setError("Please select a valid image.")
-        return
-      }
-
       // Construct scheduledAt date
       const scheduledAt = new Date(date)
       let hours = parseInt(hour)
       if (ampm === "pm" && hours !== 12) hours += 12
       if (ampm === "am" && hours === 12) hours = 0
-      scheduledAt.setHours(hours, parseInt(minute), 0, 0) // Set seconds and milliseconds to 0
+      scheduledAt.setHours(hours, parseInt(minute), 0, 0)
 
       // Ensure scheduled time is in the future
       const now = new Date()
       if (scheduledAt <= now) {
-        setError("Scheduled time must be in the future.")
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Scheduled time must be in the future.⏰"
+        })
         return
       }
 
@@ -135,81 +162,130 @@ export default function SchedulePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           caption,
-          imageUrl: photo.url,
+          images: selectedImages.map(img => img.url),
           scheduledAt: scheduledAt.toISOString(),
           seriesId: selectedSeries || null,
+          isCarousel: selectedImages.length > 1
         }),
       })
 
       const data = await response.json()
       if (data.success) {
-        setSuccess("Post scheduled successfully!")
-        // Reset form and remove the scheduled image from session
+        toast({
+          title: "Success",
+          description: "Post scheduled successfully! 🎉"
+        })
+        // Reset form and remove the scheduled images
         setCaption("")
-        setSelectedImage(null)
+        setSelectedImages([])
         setSelectedSeries("")
         setDate(undefined)
         setHour("")
         setMinute("")
         setAmpm("")
-        setSessionPhotos(prev => prev.filter(p => p.id !== selectedImage))
+        setSessionPhotos(prev => prev.filter(p => !selectedImages.some(si => si.id === p.id)))
       } else {
-        setError(data.error || "Failed to schedule post.")
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: data.error || "Failed to schedule post.😔"
+        })
       }
     } catch (err) {
       console.error("Error scheduling post:", err)
-      setError("An error occurred while scheduling the post.")
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An error occurred while scheduling the post.🤕"
+      })
     } finally {
       setIsScheduling(false)
+      setLoadingMessage("")
     }
   }
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
 
-    const formData = new FormData()
-    formData.append("file", file)
-
-    try {
-      setError(null)
-      const response = await fetch("/api/upload-image", {
-        method: "POST",
-        body: formData,
+    // Check if adding these files would exceed the 10 image limit
+    if (selectedImages.length + files.length > 10) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "You can only upload up to 10 images for a carousel post.📸"
       })
-      const data = await response.json()
-      if (data.url) {
-        // Create a Photo record
-        const photoResponse = await fetch("/api/photos", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: data.url, caption: "Uploaded photo" }),
-        })
-        const photoData = await photoResponse.json()
-        if (photoData.photo) {
-          const newPhoto = {
-            id: photoData.photo.id,
-            url: photoData.photo.url,
-            alt: photoData.photo.caption || `Photo ${photoData.photo.id}`,
-          }
-          setSessionPhotos((prev) => [...prev, newPhoto])
-          // Automatically select the newly uploaded image
-          setSelectedImage(photoData.photo.id)
-        } else {
-          setError(photoData.error || "Failed to save photo.")
-        }
-      } else {
-        setError(data.error || "Failed to upload image.")
-      }
-    } catch (err) {
-      console.error("Error uploading image:", err)
-      setError("An error occurred while uploading the image.")
+      return
     }
+
+    for (const file of files) {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      try {
+        const response = await fetch("/api/upload-image", {
+          method: "POST",
+          body: formData,
+        })
+        const data = await response.json()
+        if (data.url) {
+          const photoResponse = await fetch("/api/photos", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: data.url, caption: "Uploaded photo" }),
+          })
+          const photoData = await photoResponse.json()
+          if (photoData.photo) {
+            const newPhoto = {
+              id: photoData.photo.id,
+              url: photoData.photo.url,
+              alt: photoData.photo.caption || `Photo ${photoData.photo.id}`,
+            }
+            setSessionPhotos((prev) => [...prev, newPhoto])
+            setSelectedImages((prev) => [...prev, newPhoto])
+          } else {
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: photoData.error || "Failed to save photo.😔"
+            })
+          }
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: data.error || "Failed to upload image.😔"
+          })
+        }
+      } catch (err) {
+        console.error("Error uploading image:", err)
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "An error occurred while uploading the image.🤕"
+        })
+      }
+    }
+  }
+
+  const handleRemoveImage = (imageId: number) => {
+    setSelectedImages((prev) => prev.filter((img) => img.id !== imageId))
+  }
+
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return
+
+    const items = Array.from(selectedImages)
+    const [reorderedItem] = items.splice(result.source.index, 1)
+    items.splice(result.destination.index, 0, reorderedItem)
+
+    setSelectedImages(items)
   }
 
   return (
     <div className="flex h-screen">
-      {/* Left sidebar is handled by the layout component */}
+      <Toaster />
+      <LoadingDialog isOpen={isScheduling} message={loadingMessage} />
       
       <div className="flex-1 p-6">
         <h1 className="text-2xl font-bold tracking-tight mb-6">Schedule Post</h1>
@@ -217,35 +293,64 @@ export default function SchedulePage() {
         <div className="grid gap-6 grid-cols-[1fr,350px] h-[calc(100vh-120px)]">
           <div className="space-y-6">
             <div>
-              <h2 className="text-lg font-medium mb-4">1. Select Image</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-medium">1. Upload Images (Max 10)</h2>
+                <span className="text-sm text-muted-foreground">
+                  {selectedImages.length}/10 images selected
+                </span>
+              </div>
               <input
                 type="file"
                 accept="image/*"
                 className="hidden"
                 ref={fileInputRef}
                 onChange={handleImageUpload}
+                multiple
               />
-              <Button 
-                onClick={() => fileInputRef.current?.click()} 
+              <Button
+                onClick={() => fileInputRef.current?.click()}
                 className="mb-4"
-                variant="outline"
+                variant="secondary"
+                disabled={selectedImages.length >= 10}
               >
-                Upload Image
+                Upload Images
               </Button>
-              <div className="grid grid-cols-4 gap-2 max-h-[300px] overflow-y-auto p-1">
-                {sessionPhotos.map((photo) => (
-                  <div
-                    key={photo.id}
-                    className={cn(
-                      "relative aspect-square cursor-pointer rounded-md overflow-hidden border-2",
-                      selectedImage === photo.id ? "border-primary" : "border-transparent"
-                    )}
-                    onClick={() => setSelectedImage(photo.id)}
-                  >
-                    <Image src={photo.url} alt={photo.alt} fill className="object-cover" />
-                  </div>
-                ))}
-              </div>
+
+              <DragDropContext onDragEnd={handleDragEnd}>
+                <Droppable droppableId="images" direction="horizontal">
+                  {(provided: DroppableProvided) => (
+                    <div
+                      {...provided.droppableProps}
+                      ref={provided.innerRef}
+                      className="grid grid-cols-3 gap-2 max-h-[300px] overflow-y-auto p-1"
+                    >
+                      {selectedImages.map((photo, index) => (
+                        <Draggable key={photo.id} draggableId={photo.id.toString()} index={index}>
+                          {(provided: DraggableProvided) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              className="relative aspect-square rounded-md overflow-hidden border-2 border-primary group"
+                            >
+                              <div {...provided.dragHandleProps} className="absolute top-2 left-2 z-10">
+                                <GripVertical className="h-5 w-5 text-white opacity-75" />
+                              </div>
+                              <button
+                                onClick={() => handleRemoveImage(photo.id)}
+                                className="absolute top-2 right-2 z-10 p-1 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <X className="h-4 w-4 text-white" />
+                              </button>
+                              <Image src={photo.url} alt={photo.alt} fill className="object-cover" />
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </DragDropContext>
             </div>
 
             <div>
@@ -268,40 +373,40 @@ export default function SchedulePage() {
               <div>
                 <h2 className="text-lg font-medium mb-4">3. Write Caption</h2>
                 <div className="relative">
-                <Textarea
-                  placeholder="Write your caption here..."
-                  className="min-h-[120px] max-h-[120px] resize-none w-[400px] pr-24"
-                  value={caption}
-                  onChange={(e) => setCaption(e.target.value)}
-                  disabled={isEnhancing}
-                  aria-busy={isEnhancing}
-                  aria-label="Instagram caption input"
-                />
-                {isEnhancing && (
-                  <div className="absolute inset-0 bg-gray-100/60 flex items-center justify-center pointer-events-none">
-                    <div className="w-full h-full animate-pulse bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer" />
-                  </div>
-                )}
-                <button
-                  type="button"
-                  className={cn(
-                    "absolute bottom-2 right-2 flex items-center gap-1 text-sm transition-colors",
-                    isEnhancing
-                      ? "text-muted-foreground cursor-not-allowed"
-                      : "text-muted-foreground hover:text-primary cursor-pointer"
+                  <Textarea
+                    placeholder="Write your caption here..."
+                    className="min-h-[120px] max-h-[120px] resize-none w-[400px] pr-24"
+                    value={caption}
+                    onChange={(e) => setCaption(e.target.value)}
+                    disabled={isEnhancing}
+                    aria-busy={isEnhancing}
+                    aria-label="Instagram caption input"
+                  />
+                  {isEnhancing && (
+                    <div className="absolute inset-0 bg-gray-100/60 flex items-center justify-center pointer-events-none">
+                      <div className="w-full h-full animate-pulse bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer" />
+                    </div>
                   )}
-                  onClick={isEnhancing ? undefined : enhanceCaption}
-                  disabled={isEnhancing}
-                  aria-label={isEnhancing ? "Enhancing caption" : "Enhance caption with AI"}
-                >
-                  <span>{isEnhancing ? "Enhancing...😉" : "AI caption"}</span>
-                  {isEnhancing ? (
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                  ) : (
-                    <Sparkles className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    className={cn(
+                      "absolute bottom-2 right-2 flex items-center gap-1 text-sm transition-colors",
+                      isEnhancing
+                        ? "text-muted-foreground cursor-not-allowed"
+                        : "text-muted-foreground hover:text-primary cursor-pointer"
+                    )}
+                    onClick={isEnhancing ? undefined : enhanceCaption}
+                    disabled={isEnhancing}
+                    aria-label={isEnhancing ? "Enhancing caption" : "Enhance caption with AI"}
+                  >
+                    <span>{isEnhancing ? "Enhancing...😉" : "AI caption"}</span>
+                    {isEnhancing ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div>
@@ -380,16 +485,23 @@ export default function SchedulePage() {
                 </div>
 
                 <div className="relative aspect-square mb-2">
-                  {selectedImage ? (
-                    <Image
-                      src={sessionPhotos.find(p => p.id === selectedImage)?.url || "/placeholder.svg"}
-                      alt="Selected image"
-                      fill
-                      className="object-cover rounded"
-                    />
+                  {selectedImages.length > 0 ? (
+                    <div className="relative w-full h-full">
+                      <Image
+                        src={selectedImages[0].url}
+                        alt="First selected image"
+                        fill
+                        className="object-cover rounded"
+                      />
+                      {selectedImages.length > 1 && (
+                        <div className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded-full text-xs">
+                          +{selectedImages.length - 1}
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <div className="w-full h-full bg-gray-100 rounded flex items-center justify-center">
-                      <p className="text-muted-foreground">Select an image</p>
+                      <p className="text-muted-foreground">Select images</p>
                     </div>
                   )}
                 </div>
@@ -408,13 +520,6 @@ export default function SchedulePage() {
                 </div>
               </CardContent>
             </Card>
-
-            {(error || success) && (
-              <div className="mt-4">
-                {error && <p className="text-red-600">{error}</p>}
-                {success && <p className="text-green-600">{success}</p>}
-              </div>
-            )}
 
             <div className="flex gap-2 mt-4">
               <Button variant="outline" onClick={() => router.push('/images')} className="flex-1">
