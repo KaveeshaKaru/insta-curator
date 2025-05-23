@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Sparkles, GripVertical, X } from "lucide-react";
-import { DragDropContext, Droppable, Draggable, type DropResult, type DroppableProvided, type DraggableProvided } from "@hello-pangea/dnd";
+import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -41,7 +41,6 @@ export default function ImagesPage() {
     }
 
     setIsEnhancing(true);
-
     try {
       const response = await fetch("/api/enhance-caption", {
         method: "POST",
@@ -114,6 +113,7 @@ export default function ImagesPage() {
           body: formData,
         });
         const data = await response.json();
+
         if (data.url) {
           const photoResponse = await fetch("/api/photos", {
             method: "POST",
@@ -121,6 +121,7 @@ export default function ImagesPage() {
             body: JSON.stringify({ url: data.url, caption: "Uploaded photo" }),
           });
           const photoData = await photoResponse.json();
+
           if (photoData.photo) {
             const newPhoto = {
               id: photoData.photo.id,
@@ -233,23 +234,21 @@ export default function ImagesPage() {
   };
 
   return (
-    <div className="flex h-screen">
+    <div className="w-full h-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
       <Toaster />
       <LoadingDialog isOpen={isPosting} message={loadingMessage} />
-      {/* Left sidebar is handled by the layout component */}
 
-      <div className="flex-1 p-6">
-        <h1 className="text-2xl font-bold tracking-tight mb-6">Post to Instagram</h1>
+      <h1 className="text-3xl font-bold tracking-tight mb-8">Post to Instagram</h1>
 
-        <div className="grid gap-6 grid-cols-[1fr,350px]">
-          <div className="space-y-6">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-medium">1. Upload Images (Max 10)</h2>
-                <span className="text-sm text-muted-foreground">
-                  {selectedImages.length}/10 images selected
-                </span>
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left section */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Upload */}
+          <section>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">1. Upload Images (Max 10)</h2>
+              <span className="text-sm text-muted-foreground">{selectedImages.length}/10 selected</span>
+            </div>
               <input
                 type="file"
                 accept="image/*"
@@ -264,146 +263,124 @@ export default function ImagesPage() {
                 variant="secondary"
                 disabled={selectedImages.length >= 10}
               >
-                Upload Images
-              </Button>
-
-              <DragDropContext onDragEnd={handleDragEnd}>
-                <Droppable droppableId="images" direction="horizontal">
-                  {(provided: DroppableProvided) => (
-                    <div
-                      {...provided.droppableProps}
-                      ref={provided.innerRef}
-                      className="grid grid-cols-3 gap-2 max-h-[500px] overflow-y-auto p-1"
-                    >
-                      {selectedImages.map((photo, index) => (
-                        <Draggable key={photo.id} draggableId={photo.id.toString()} index={index}>
-                          {(provided: DraggableProvided) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              className="relative aspect-square rounded-md overflow-hidden border-2 border-primary group"
-                            >
-                              <div {...provided.dragHandleProps} className="absolute top-2 left-2 z-10">
-                                <GripVertical className="h-5 w-5 text-white opacity-75" />
-                              </div>
-                              <button
-                                onClick={() => handleRemoveImage(photo.id)}
-                                className="absolute top-2 right-2 z-10 p-1 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <X className="h-4 w-4 text-white" />
-                              </button>
-                              <Image src={photo.url} alt={photo.alt} fill className="object-cover" />
+              Upload Images
+            </Button>
+            <DragDropContext onDragEnd={handleDragEnd}>
+              <Droppable droppableId="images" direction="horizontal">
+                {provided => (
+                  <div ref={provided.innerRef} {...provided.droppableProps} className="mt-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                    {selectedImages.map((photo, index) => (
+                      <Draggable key={photo.id} draggableId={photo.id.toString()} index={index}>
+                        {provided => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            className="relative aspect-square rounded-md overflow-hidden border group"
+                          >
+                            <div {...provided.dragHandleProps} className="absolute top-1 left-1 z-10">
+                              <GripVertical className="h-4 w-4 text-white opacity-75" />
                             </div>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              </DragDropContext>
-            </div>
-
-            <div>
-              <h2 className="text-lg font-medium mb-4">2. Select Series (Optional)</h2>
-              <Select value={selectedSeries} onValueChange={setSelectedSeries}>
-                <SelectTrigger className="w-[300px]">
-                  <SelectValue placeholder="Select a series" />
-                </SelectTrigger>
-                <SelectContent>
-                  {seriesList.map((series) => (
-                    <SelectItem key={series.id} value={series.id.toString()}>
-                      {series.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <h2 className="text-lg font-medium mb-4">3. Write Caption</h2>
-              <div className="relative">
-                <Textarea
-                  placeholder="Write your caption here..."
-                  className="min-h-[120px] max-h-[120px] resize-none w-[600px] pr-24"
-                  value={caption}
-                  onChange={(e) => setCaption(e.target.value)}
-                  disabled={isEnhancing}
-                  aria-busy={isEnhancing}
-                  aria-label="Instagram caption input"
-                />
-                {isEnhancing && (
-                  <div className="absolute inset-0 bg-gray-100/60 flex items-center justify-center pointer-events-none">
-                    <div className="w-full h-full animate-pulse bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer" />
+                            <button
+                              onClick={() => handleRemoveImage(photo.id)}
+                              className="absolute top-1 right-1 z-10 p-1 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition"
+                            >
+                              <X className="h-4 w-4 text-white" />
+                            </button>
+                            <Image src={photo.url} alt={photo.alt} fill className="object-cover" />
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
                   </div>
                 )}
-                <button
-                  type="button"
-                  className={cn(
-                    "absolute bottom-2 right-2 flex items-center gap-1 text-sm transition-colors",
-                    isEnhancing
-                      ? "text-muted-foreground cursor-not-allowed"
-                      : "text-muted-foreground hover:text-primary cursor-pointer"
-                  )}
-                  onClick={isEnhancing ? undefined : enhanceCaption}
-                  disabled={isEnhancing}
-                  aria-label={isEnhancing ? "Enhancing caption" : "Enhance caption with AI"}
-                >
-                  <span>{isEnhancing ? "Enhancing...😉" : "AI caption"}</span>
+              </Droppable>
+            </DragDropContext>
+          </section>
+
+          {/* Series */}
+          <section>
+            <h2 className="text-lg font-semibold mb-2">2. Select Series (Optional)</h2>
+            <Select value={selectedSeries} onValueChange={setSelectedSeries}>
+              <SelectTrigger className="w-full max-w-md">
+                <SelectValue placeholder="Select a series" />
+              </SelectTrigger>
+              <SelectContent>
+                {seriesList.map(series => (
+                  <SelectItem key={series.id} value={series.id.toString()}>
+                    {series.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </section>
+
+          {/* Caption */}
+          <section>
+            <h2 className="text-lg font-semibold mb-2">3. Write Caption</h2>
+            <div className="relative w-full max-w-3xl">
+              <Textarea
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                placeholder="Write your caption here..."
+                className="min-h-[120px] resize-none pr-24"
+                disabled={isEnhancing}
+              />
+              {isEnhancing && (
+                <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+                  <div className="h-6 w-6 border-2 border-primary border-t-transparent animate-spin rounded-full" />
+                </div>
+              )}
+              <button
+                type="button"
+                className={cn(
+                  "absolute bottom-2 right-2 text-sm flex items-center gap-1",
+                  isEnhancing ? "text-muted-foreground cursor-not-allowed" : "hover:text-primary"
+                )}
+                onClick={isEnhancing ? undefined : enhanceCaption}
+                disabled={isEnhancing}
+              >
+                <span>{isEnhancing ? "Enhancing...😉" : "AI caption"}</span>
                   {isEnhancing ? (
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                   ) : (
                     <Sparkles className="h-4 w-4" />
                   )}
-                </button>
-              </div>
+              </button>
             </div>
-          </div>
+          </section>
+        </div>
 
-          <div>
-            <h2 className="text-lg font-medium mb-4">4. Preview</h2>
-            <Card className="overflow-hidden">
-              <CardContent className="p-3">
-                <div className="flex items-center space-x-2 mb-2">
-                  <InstagramUsername />
-                </div>
-
-                <div className="relative aspect-square mb-2">
-                  {selectedImages.length > 0 ? (
-                    <div className="relative w-full h-full">
-                      <Image
-                        src={selectedImages[0].url}
-                        alt="First selected image"
-                        fill
-                        className="object-cover rounded"
-                      />
-                      {selectedImages.length > 1 && (
-                        <div className="absolute top-2 right-2 bg-black/50 text-white px-2 py-1 rounded-full text-xs">
-                          +{selectedImages.length - 1}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="w-full h-full bg-gray-100 rounded flex items-center justify-center">
-                      <p className="text-muted-foreground">Select images</p>
-                    </div>
-                  )}
-                </div>
-
-                {caption && (
-                  <p className="text-sm mb-2">{caption}</p>
+        {/* Right section */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">4. Preview</h2>
+          <Card>
+            <CardContent className="p-4 space-y-2">
+              <InstagramUsername />
+              <div className="relative aspect-square">
+                {selectedImages.length ? (
+                  <Image src={selectedImages[0].url} alt="Preview" fill className="rounded object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gray-100 flex items-center justify-center rounded">
+                    <p className="text-sm text-muted-foreground">No image selected</p>
+                  </div>
                 )}
-              </CardContent>
-            </Card>
-
-            <div className="flex gap-2 mt-4">
-              <Button variant="outline" onClick={() => router.push('/schedule')} className="flex-1">
-                Schedule Instead
-              </Button>
-              <Button onClick={handlePostNow} disabled={isPosting} className="flex-1">
-                {isPosting ? "Posting..." : "Post Now"}
-              </Button>
-            </div>
+                {selectedImages.length > 1 && (
+                  <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
+                    +{selectedImages.length - 1}
+                  </div>
+                )}
+              </div>
+              {caption && <p className="text-sm">{caption}</p>}
+            </CardContent>
+          </Card>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => router.push("/schedule")} className="flex-1">
+              Schedule Instead
+            </Button>
+            <Button onClick={handlePostNow} disabled={isPosting} className="flex-1">
+              {isPosting ? "Posting..." : "Post Now"}
+            </Button>
           </div>
         </div>
       </div>

@@ -5,8 +5,8 @@ export async function middleware(request: NextRequest) {
   const sessionCookie = getSessionCookie(request);
   const pathname = request.nextUrl.pathname;
 
-  console.log('➡️ Middleware triggered on:', pathname);
-  console.log('🧠 Session:', sessionCookie);
+  // console.log('➡️ Middleware triggered on:', pathname);
+  // console.log('🧠 Session:', sessionCookie);
 
   const isLoginPage = pathname === '/auth/login';
   const isRootPage = pathname === '/';

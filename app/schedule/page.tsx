@@ -8,6 +8,10 @@ import { format } from "date-fns"
 import { DragDropContext, Droppable, Draggable, type DropResult, type DroppableProvided, type DraggableProvided } from "@hello-pangea/dnd"
 import InstagramUsername from "@/components/InstagramUsername"
 import { Sparkles } from "lucide-react"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -19,6 +23,21 @@ import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { LoadingDialog } from "@/components/ui/loading-dialog"
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+
+const FormSchema = z.object({
+  scheduledTime: z.date({
+    required_error: "A date and time is required.",
+  }),
+});
 
 export default function SchedulePage() {
   const [date, setDate] = useState<Date>()
@@ -36,6 +55,30 @@ export default function SchedulePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const { toast } = useToast()
+
+  const form = useForm<z.infer<typeof FormSchema>>({
+    resolver: zodResolver(FormSchema),
+  });
+
+  function handleDateSelect(date: Date | undefined) {
+    if (date) {
+      form.setValue("scheduledTime", date);
+    }
+  }
+
+  function handleTimeChange(type: "hour" | "minute", value: string) {
+    const currentDate = form.getValues("scheduledTime") || new Date();
+    let newDate = new Date(currentDate);
+
+    if (type === "hour") {
+      const hour = parseInt(value, 10);
+      newDate.setHours(hour);
+    } else if (type === "minute") {
+      newDate.setMinutes(parseInt(value, 10));
+    }
+
+    form.setValue("scheduledTime", newDate);
+  }
 
   // Function to enhance caption
   const enhanceCaption = useCallback(async () => {
@@ -107,102 +150,86 @@ export default function SchedulePage() {
         variant: "destructive",
         title: "Error",
         description: "Please select at least one image.🥹"
-      })
-      return
+      });
+      return;
     }
     if (!caption.trim()) {
       toast({
         variant: "destructive",
         title: "Error",
         description: "Please enter a caption.🤓"
-      })
-      return
-    }
-    if (!date) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please select a date.📅"
-      })
-      return
-    }
-    if (!hour || !minute || !ampm) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please select a time.⏰"
-      })
-      return
+      });
+      return;
     }
 
-    setIsScheduling(true)
-    setLoadingMessage("Scheduling your post... 📅✨")
+    const scheduledTime = form.getValues("scheduledTime");
+    if (!scheduledTime) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please select a date and time.📅"
+      });
+      return;
+    }
+
+    // Ensure scheduled time is in the future
+    const now = new Date();
+    if (scheduledTime <= now) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Scheduled time must be in the future.⏰"
+      });
+      return;
+    }
+
+    setIsScheduling(true);
+    setLoadingMessage("Scheduling your post... 📅✨");
 
     try {
-      // Construct scheduledAt date
-      const scheduledAt = new Date(date)
-      let hours = parseInt(hour)
-      if (ampm === "pm" && hours !== 12) hours += 12
-      if (ampm === "am" && hours === 12) hours = 0
-      scheduledAt.setHours(hours, parseInt(minute), 0, 0)
-
-      // Ensure scheduled time is in the future
-      const now = new Date()
-      if (scheduledAt <= now) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Scheduled time must be in the future.⏰"
-        })
-        return
-      }
-
       const response = await fetch("/api/instagram/schedule-post", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           caption,
           images: selectedImages.map(img => img.url),
-          scheduledAt: scheduledAt.toISOString(),
+          scheduledAt: scheduledTime.toISOString(),
           seriesId: selectedSeries || null,
           isCarousel: selectedImages.length > 1
         }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
       if (data.success) {
         toast({
           title: "Success",
           description: "Post scheduled successfully! 🎉"
-        })
+        });
         // Reset form and remove the scheduled images
-        setCaption("")
-        setSelectedImages([])
-        setSelectedSeries("")
-        setDate(undefined)
-        setHour("")
-        setMinute("")
-        setAmpm("")
-        setSessionPhotos(prev => prev.filter(p => !selectedImages.some(si => si.id === p.id)))
+        setCaption("");
+        setSelectedImages([]);
+        setSelectedSeries("");
+        form.reset();
+        setSessionPhotos(prev => prev.filter(p => !selectedImages.some(si => si.id === p.id)));
       } else {
         toast({
           variant: "destructive",
           title: "Error",
           description: data.error || "Failed to schedule post.😔"
-        })
+        });
       }
     } catch (err) {
-      console.error("Error scheduling post:", err)
+      console.error("Error scheduling post:", err);
       toast({
         variant: "destructive",
         title: "Error",
         description: "An error occurred while scheduling the post.🤕"
-      })
+      });
     } finally {
-      setIsScheduling(false)
-      setLoadingMessage("")
+      setIsScheduling(false);
+      setLoadingMessage("");
     }
-  }
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -286,7 +313,7 @@ export default function SchedulePage() {
     <div className="flex h-screen">
       <Toaster />
       <LoadingDialog isOpen={isScheduling} message={loadingMessage} />
-      
+
       <div className="flex-1 p-6">
         <h1 className="text-2xl font-bold tracking-tight mb-6">Schedule Post</h1>
 
@@ -372,105 +399,151 @@ export default function SchedulePage() {
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <h2 className="text-lg font-medium mb-4">3. Write Caption</h2>
-                <div className="relative">
-                  <Textarea
-                    placeholder="Write your caption here..."
-                    className="min-h-[120px] max-h-[120px] resize-none w-[400px] pr-24"
-                    value={caption}
-                    onChange={(e) => setCaption(e.target.value)}
-                    disabled={isEnhancing}
-                    aria-busy={isEnhancing}
-                    aria-label="Instagram caption input"
-                  />
-                  {isEnhancing && (
-                    <div className="absolute inset-0 bg-gray-100/60 flex items-center justify-center pointer-events-none">
-                      <div className="w-full h-full animate-pulse bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer" />
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    className={cn(
-                      "absolute bottom-2 right-2 flex items-center gap-1 text-sm transition-colors",
-                      isEnhancing
-                        ? "text-muted-foreground cursor-not-allowed"
-                        : "text-muted-foreground hover:text-primary cursor-pointer"
-                    )}
-                    onClick={isEnhancing ? undefined : enhanceCaption}
-                    disabled={isEnhancing}
-                    aria-label={isEnhancing ? "Enhancing caption" : "Enhance caption with AI"}
-                  >
+                <div className="grid gap-6">
+                  <div className="relative w-[400px]">
+                    <div className="relative">
+                      <Textarea
+                        placeholder="Write your caption here..."
+                        className="min-h-[120px] max-h-[120px] resize-none w-full"
+                        value={caption}
+                        onChange={(e) => setCaption(e.target.value)}
+                        disabled={isEnhancing}
+                        aria-busy={isEnhancing}
+                        aria-label="Instagram caption input"
+                      />
+                      <div className="absolute right-2 bottom-2 z-10">
+                        <button
+                          type="button"
+                          className={cn(
+                            "inline-flex items-center gap-1 text-sm rounded transition-colors px-2 py-1 bg-background",
+                            isEnhancing
+                              ? "text-muted-foreground cursor-not-allowed"
+                              : "text-muted-foreground hover:text-primary cursor-pointer"
+                          )}
+                          onClick={isEnhancing ? undefined : enhanceCaption}
+                          disabled={isEnhancing}
+                          aria-label={isEnhancing ? "Enhancing caption" : "Enhance caption with AI"}
+                        >
                     <span>{isEnhancing ? "Enhancing...😉" : "AI caption"}</span>
-                    {isEnhancing ? (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    ) : (
-                      <Sparkles className="h-4 w-4" />
+                          {isEnhancing ? (
+                            <div className="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                          ) : (
+                            <Sparkles className="h-3 w-3" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    {isEnhancing && (
+                      <div className="absolute inset-0 bg-gray-100/60 flex items-center justify-center pointer-events-none">
+                        <div className="w-full h-full animate-pulse bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer" />
+                      </div>
                     )}
-                  </button>
+                  </div>
                 </div>
               </div>
 
               <div>
                 <h2 className="text-lg font-medium mb-4">4. Schedule Date & Time</h2>
-                <div className="space-y-4">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date ? format(date, "PPP") : "Select date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={date} onSelect={setDate} initialFocus />
-                    </PopoverContent>
-                  </Popover>
+                <Form {...form}>
+                  <FormField
+                    control={form.control}
+                    name="scheduledTime"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP HH:mm")
+                                ) : (
+                                  <span>Select date and time</span>
+                                )}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <div className="sm:flex">
+                              <Calendar
+                                mode="single"
+                                selected={field.value}
+                                onSelect={handleDateSelect}
+                                initialFocus
+                              />
+                              <div className="flex flex-col sm:flex-row sm:h-[300px] divide-y sm:divide-y-0 sm:divide-x">
+                                <ScrollArea className="w-64 sm:w-auto">
+                                  <div className="flex sm:flex-col p-2">
+                                    {Array.from({ length: 24 }, (_, i) => i)
+                                      .reverse()
+                                      .map((hour) => (
+                                        <Button
+                                          key={hour}
+                                          size="icon"
+                                          variant={
+                                            field.value &&
+                                              field.value.getHours() === hour
+                                              ? "default"
+                                              : "ghost"
+                                          }
+                                          className="sm:w-full shrink-0 aspect-square"
+                                          onClick={() =>
+                                            handleTimeChange("hour", hour.toString())
+                                          }
+                                        >
+                                          {hour.toString().padStart(2, '0')}
+                                        </Button>
+                                      ))}
+                                  </div>
+                                  <ScrollBar orientation="horizontal" className="sm:hidden" />
+                                </ScrollArea>
+                                <ScrollArea className="w-64 sm:w-auto">
+                                  <div className="flex sm:flex-col p-2">
+                                    {Array.from({ length: 12 }, (_, i) => i * 5).map(
+                                      (minute) => (
+                                        <Button
+                                          key={minute}
+                                          size="icon"
+                                          variant={
+                                            field.value &&
+                                              field.value.getMinutes() === minute
+                                              ? "default"
+                                              : "ghost"
+                                          }
+                                          className="sm:w-full shrink-0 aspect-square"
+                                          onClick={() =>
+                                            handleTimeChange("minute", minute.toString())
+                                          }
+                                        >
+                                          {minute.toString().padStart(2, '0')}
+                                        </Button>
+                                      ))}
+                                  </div>
+                                  <ScrollBar orientation="horizontal" className="sm:hidden" />
+                                </ScrollArea>
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </Form>
 
-                  <div className="grid grid-cols-3 gap-2">
-                    <Select value={hour} onValueChange={setHour}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Hour" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Array.from({ length: 12 }).map((_, i) => (
-                          <SelectItem key={i} value={`${i + 1}`}>
-                            {i + 1}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select value={minute} onValueChange={setMinute}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Minute" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {minutes.map((min) => (
-                          <SelectItem key={min} value={min}>
-                            {min}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select value={ampm} onValueChange={setAmpm}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="AM/PM" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="am">AM</SelectItem>
-                        <SelectItem value="pm">PM</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Clock className="mr-2 h-4 w-4" />
-                    <span>
-                      {date && hour && minute && ampm
-                        ? `Scheduled for ${format(date, "PPP")} at ${hour}:${minute} ${ampm.toUpperCase()}`
-                        : "Not scheduled yet"}
-                    </span>
-                  </div>
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <Clock className="mr-2 h-4 w-4" />
+                  <span>
+                    {form.getValues("scheduledTime")
+                      ? format(form.getValues("scheduledTime"), "PPP 'at' HH:mm")
+                      : "Not scheduled yet"}
+                  </span>
                 </div>
               </div>
             </div>

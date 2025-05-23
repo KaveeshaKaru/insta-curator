@@ -25,8 +25,13 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <body className={`${inter.className} bg-background text-foreground min-h-screen`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
           <LayoutWrapper>{children}</LayoutWrapper>
         </ThemeProvider>
       </body>

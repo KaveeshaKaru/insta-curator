@@ -1,4 +1,21 @@
 import prisma from "@/lib/prisma";
+import { addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
+
+interface Post {
+  id: number;
+  scheduledAt: Date;
+  postedAt: Date | null;
+  isCarousel: boolean;
+  series: {
+    name: string;
+  } | null;
+  photos: Array<{
+    order: number;
+    photo: {
+      url: string;
+    };
+  }>;
+}
 
 export interface DashboardStats {
   totalImages: number;
@@ -12,67 +29,63 @@ export interface DashboardStats {
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
-  // Get total images count
+  const now = new Date();
+  const lastWeekStart = startOfWeek(addDays(now, -7));
+  const lastWeekEnd = endOfWeek(addDays(now, -7));
+  const thisWeekStart = startOfWeek(now);
+  const lastMonthStart = startOfMonth(addDays(now, -30));
+  const lastMonthEnd = endOfMonth(addDays(now, -30));
+
+  // Get total images
   const totalImages = await prisma.photo.count();
-
-  // Get series count
-  const seriesCount = await prisma.series.count();
-
-  // Get scheduled posts count
-  const scheduledPosts = await prisma.post.count({
-    where: {
-      status: 'pending',
-    },
-  });
-
-  // Get posted count
-  const postedCount = await prisma.post.count({
-    where: {
-      status: 'posted',
-    },
-  });
-
-  // Get images from last week
-  const lastWeek = new Date();
-  lastWeek.setDate(lastWeek.getDate() - 7);
   const lastWeekImages = await prisma.photo.count({
     where: {
       createdAt: {
-        gte: lastWeek,
+        gte: lastWeekStart,
+        lte: lastWeekEnd,
       },
     },
   });
 
-  // Get series from last month
-  const lastMonth = new Date();
-  lastMonth.setMonth(lastMonth.getMonth() - 1);
+  // Get series stats
+  const seriesCount = await prisma.series.count();
   const lastMonthSeries = await prisma.series.count({
     where: {
       createdAt: {
-        gte: lastMonth,
+        gte: lastMonthStart,
+        lte: lastMonthEnd,
       },
     },
   });
 
-  // Get next scheduled post date
-  const nextPost = await prisma.post.findFirst({
+  // Get scheduled posts
+  const scheduledPosts = await prisma.post.count({
     where: {
-      status: 'pending',
-    },
-    orderBy: {
-      scheduledAt: 'asc',
-    },
-    select: {
-      scheduledAt: true,
+      status: "pending",
     },
   });
 
-  // Get posts from this week
+  const nextPost = await prisma.post.findFirst({
+    where: {
+      status: "pending",
+    },
+    orderBy: {
+      scheduledAt: "asc",
+    },
+  });
+
+  // Get posted stats
+  const postedCount = await prisma.post.count({
+    where: {
+      status: "posted",
+    },
+  });
+
   const thisWeekPosts = await prisma.post.count({
     where: {
-      status: 'posted',
+      status: "posted",
       postedAt: {
-        gte: lastWeek,
+        gte: thisWeekStart,
       },
     },
   });
@@ -87,4 +100,72 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     nextPostDate: nextPost?.scheduledAt || null,
     thisWeekPosts,
   };
+}
+
+export async function getUpcomingPosts(): Promise<Post[]> {
+  const posts = await prisma.post.findMany({
+    where: {
+      status: "pending",
+    },
+    orderBy: {
+      scheduledAt: "asc",
+    },
+    take: 3,
+    include: {
+      series: {
+        select: {
+          name: true,
+        },
+      },
+      photos: {
+        orderBy: {
+          order: "asc",
+        },
+        take: 1,
+        include: {
+          photo: {
+            select: {
+              url: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return posts;
+}
+
+export async function getRecentPosts(): Promise<Post[]> {
+  const posts = await prisma.post.findMany({
+    where: {
+      status: "posted",
+    },
+    orderBy: {
+      postedAt: "desc",
+    },
+    take: 3,
+    include: {
+      series: {
+        select: {
+          name: true,
+        },
+      },
+      photos: {
+        orderBy: {
+          order: "asc",
+        },
+        take: 1,
+        include: {
+          photo: {
+            select: {
+              url: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return posts;
 } 

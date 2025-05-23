@@ -2,88 +2,49 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Calendar, Grid3X3, Home, Image as LucideImage, BookImage, LogOut, Settings, User, FileTerminal, Handshake } from "lucide-react"
+import {
+  Calendar, Grid3X3, Home, Image as LucideImage,
+  BookImage, LogOut, Settings, User, FileTerminal, Handshake
+} from "lucide-react"
 import { useSession, signOut } from "@/lib/auth-client"
 import { toast } from "sonner"
 import { useState, useEffect } from "react"
-import Image from 'next/image'
+import Image from "next/image"
 import { motion } from "framer-motion"
 
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarSeparator,
+  Sidebar, SidebarContent, SidebarFooter, SidebarHeader,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogDescription,
+  DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
 import { Switch } from "@/components/ui/switch"
 
 const menuCategories = {
   main: [
-    {
-      title: "Dashboard",
-      href: "/dashboard",
-      icon: Home,
-    },
-    {
-      title: "Images",
-      href: "/images",
-      icon: LucideImage,
-    },
-    {
-      title: "Series",
-      href: "/series",
-      icon: Grid3X3,
-    },
-    {
-      title: "Schedule",
-      href: "/schedule",
-      icon: Calendar,
-    },
-    {
-      title: "Posts",
-      href: "/posts",
-      icon: BookImage,
-    },
+    { title: "Dashboard", href: "/dashboard", icon: Home },
+    { title: "Images", href: "/images", icon: LucideImage },
+    { title: "Series", href: "/series", icon: Grid3X3 },
+    { title: "Schedule", href: "/schedule", icon: Calendar },
+    { title: "Posts", href: "/posts", icon: BookImage },
   ],
   settings: [
-    {
-      title: "Settings",
-      href: "/settings",
-      icon: Settings,
-    },
+    { title: "Settings", href: "/settings", icon: Settings },
   ],
   legal: [
-    {
-      title: "Privacy Policy",
-      href: "/privacy-policy",
-      icon: FileTerminal,
-    },
-    {
-      title: "Terms of Service",
-      href: "/terms",
-      icon: Handshake,
-    },
+    { title: "Privacy Policy", href: "/privacy-policy", icon: FileTerminal },
+    { title: "Terms of Service", href: "/terms", icon: Handshake },
   ],
 }
 
 interface MenuItem {
-  title: string;
-  href: string;
-  icon: React.ElementType;
+  title: string
+  href: string
+  icon: React.ElementType
 }
 
 export function AppSidebar() {
@@ -100,11 +61,11 @@ export function AppSidebar() {
   const handleLogout = async () => {
     try {
       await signOut()
-      router.push('/auth/login')
-      toast.success('Logged out successfully')
+      router.push("/auth/login")
+      toast.success("Logged out successfully")
     } catch (error) {
-      console.error('Error logging out:', error)
-      toast.error('Failed to log out')
+      console.error("Error logging out:", error)
+      toast.error("Failed to log out")
     }
   }
 
@@ -121,7 +82,7 @@ export function AppSidebar() {
         }`}
       >
         <Link href={item.href} className="flex items-center gap-3 w-full">
-          <item.icon className={`h-5 w-5 transition-colors duration-150 ${isActive ? "text-blue-500" : ""}`} />
+          <item.icon className={`h-5 w-5 ${isActive ? "text-blue-500" : ""}`} />
           <span>{item.title}</span>
         </Link>
       </SidebarMenuButton>
@@ -130,15 +91,14 @@ export function AppSidebar() {
 
   return (
     <>
-      <Sidebar className="w-80 h-screen bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 rounded-r-[2rem] shadow-xl border-r border-gray-200 dark:border-gray-700 flex flex-col justify-between transition-colors duration-150">
-        <SidebarHeader className="flex flex-col items-center justify-center py-8">
+      <Sidebar className="w-64 shrink-0 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 border-r border-gray-200 dark:border-gray-700 flex flex-col justify-between">
+        <SidebarHeader className="flex flex-col items-center justify-center py-6">
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
+            initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.3 }}
-            className="flex items-center gap-2 px-2"
           >
-            <Image src="/logo/iCurator-logo.png" alt="iCurator Logo" width={140} height={40} priority className="hover:opacity-80 transition-opacity" />
+            <Image src="/logo/iCurator-logo.png" alt="Logo" width={140} height={40} priority />
           </motion.div>
         </SidebarHeader>
 
@@ -173,13 +133,8 @@ export function AppSidebar() {
           </div>
         </SidebarContent>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.2 }}
-          className="flex items-center justify-center px-4 py-4 "
-        >
-          <div className="flex items-center gap-4 bg-gray-50 dark:bg-gray-800 px-4 py-2 rounded-full shadow-inner">
+        <div className="flex items-center justify-center px-4 py-4">
+          <div className="flex items-center gap-4 bg-gray-50 dark:bg-gray-800 px-4 py-2 rounded-full">
             <span className="text-yellow-400 text-lg">☀️</span>
             <Switch
               checked={isDarkMode}
@@ -191,22 +146,16 @@ export function AppSidebar() {
             />
             <span className="text-blue-500 text-lg">🌙</span>
           </div>
-        </motion.div>
+        </div>
 
         <SidebarFooter className="px-4 pb-6">
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            className="flex items-center justify-between bg-gray-50 dark:from-gray-800 dark:to-gray-700 p-4 rounded-2xl shadow-lg"
-          >
-            <Link href="/profile" className="flex items-center gap-3 hover:opacity-90 transition group">
-              <Avatar className="h-10 w-10 ring-2 ring-blue-500/20 group-hover:ring-blue-500/40 transition-all">
+          <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-4 rounded-2xl">
+            <Link href="/profile" className="flex items-center gap-3 group">
+              <Avatar className="h-10 w-10 ring-2 ring-blue-500/20 group-hover:ring-blue-500/40 transition">
                 <AvatarImage src={session?.user?.image || undefined} alt={session?.user?.name || "User"} />
-                <AvatarFallback className="bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                <AvatarFallback>
                   {session?.user?.name
-                    ? session.user.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
+                    ? session.user.name.split(" ").map((n) => n[0]).join("")
                     : <User className="h-4 w-4" />}
                 </AvatarFallback>
               </Avatar>
@@ -215,15 +164,15 @@ export function AppSidebar() {
                 <span className="text-xs text-gray-500 dark:text-gray-400">{session?.user?.email || "@username"}</span>
               </div>
             </Link>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-300"
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setShowLogoutDialog(true)}
+              className="text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
             >
               <LogOut className="h-4 w-4" />
             </Button>
-          </motion.div>
+          </div>
         </SidebarFooter>
       </Sidebar>
 
@@ -236,12 +185,8 @@ export function AppSidebar() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleLogout}>
-              Logout
-            </Button>
+            <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleLogout}>Logout</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -11,14 +11,20 @@ export default function LayoutWrapper({ children }: { children: ReactNode }) {
   const isLandingPage = pathname === "/landingPage"
 
   if (isAuthRoute || isLandingPage) {
-    return <>{children}</>
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-background">
+        {children}
+      </div>
+    )
   }
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen">
+      <div className="flex min-h-screen w-full">
         <AppSidebar />
-        <main className="flex-1 overflow-auto ml-24">{children}</main>
+        <main className="flex-1 overflow-auto px-6 py-8 bg-background">
+          {children}
+        </main>
       </div>
     </SidebarProvider>
   )
