@@ -70,10 +70,10 @@ const PostCard = ({ post }: PostCardProps) => {
               <Badge className="bg-primary text-primary-foreground">Scheduled</Badge>
             )}
             {post.status === "posted" && (
-              <Badge variant="secondary">Posted</Badge>
+              <Badge className="bg-green-500 text-white">Posted</Badge>
             )}
             {post.status === "pending" && (
-              <Badge variant="outline">Pending</Badge>
+              <Badge className="bg-blue-500 text-white">Scheduled</Badge>
             )}
           </div>
         </div>
@@ -252,8 +252,7 @@ export default function PostsPage() {
           <Tabs defaultValue="all" className="h-full">
             <TabsList className="w-full max-w-2xl">
               <TabsTrigger value="all" className="flex-1">All Images</TabsTrigger>
-              <TabsTrigger value="pending" className="flex-1">Pending</TabsTrigger>
-              <TabsTrigger value="scheduled" className="flex-1">Scheduled</TabsTrigger>
+              <TabsTrigger value="pending" className="flex-1">Scheduled</TabsTrigger>
               <TabsTrigger value="posted" className="flex-1">Posted</TabsTrigger>
             </TabsList>
 
@@ -264,10 +263,6 @@ export default function PostsPage() {
 
               <TabsContent value="pending" className="h-full">
                 {renderPosts(getPostsByStatus("pending"))}
-              </TabsContent>
-
-              <TabsContent value="scheduled" className="h-full">
-                {renderPosts(getPostsByStatus("scheduled"))}
               </TabsContent>
 
               <TabsContent value="posted" className="h-full">

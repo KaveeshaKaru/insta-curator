@@ -148,7 +148,7 @@ export function AppSidebar() {
           </div>
         </div>
 
-        <SidebarFooter className="px-4 pb-6">
+        <SidebarFooter className="px-0 pb-6">
           <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 p-4 rounded-2xl">
             <Link href="/profile" className="flex items-center gap-3 group">
               <Avatar className="h-10 w-10 ring-2 ring-blue-500/20 group-hover:ring-blue-500/40 transition">
