@@ -28,7 +28,7 @@ export interface DashboardStats {
   thisWeekPosts: number;
 }
 
-export async function getDashboardStats(): Promise<DashboardStats> {
+export async function getDashboardStats(userId: string): Promise<DashboardStats> {
   const now = new Date();
   const lastWeekStart = startOfWeek(addDays(now, -7));
   const lastWeekEnd = endOfWeek(addDays(now, -7));
@@ -37,9 +37,12 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const lastMonthEnd = endOfMonth(addDays(now, -30));
 
   // Get total images
-  const totalImages = await prisma.photo.count();
+  const totalImages = await prisma.photo.count({
+    where: { userId }
+  });
   const lastWeekImages = await prisma.photo.count({
     where: {
+      userId,
       createdAt: {
         gte: lastWeekStart,
         lte: lastWeekEnd,
@@ -48,9 +51,12 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   });
 
   // Get series stats
-  const seriesCount = await prisma.series.count();
+  const seriesCount = await prisma.series.count({
+    where: { userId }
+  });
   const lastMonthSeries = await prisma.series.count({
     where: {
+      userId,
       createdAt: {
         gte: lastMonthStart,
         lte: lastMonthEnd,
@@ -61,12 +67,14 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   // Get scheduled posts
   const scheduledPosts = await prisma.post.count({
     where: {
+      userId,
       status: "pending",
     },
   });
 
   const nextPost = await prisma.post.findFirst({
     where: {
+      userId,
       status: "pending",
     },
     orderBy: {
@@ -77,12 +85,14 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   // Get posted stats
   const postedCount = await prisma.post.count({
     where: {
+      userId,
       status: "posted",
     },
   });
 
   const thisWeekPosts = await prisma.post.count({
     where: {
+      userId,
       status: "posted",
       postedAt: {
         gte: thisWeekStart,
@@ -102,9 +112,10 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   };
 }
 
-export async function getUpcomingPosts(): Promise<Post[]> {
+export async function getUpcomingPosts(userId: string): Promise<Post[]> {
   const posts = await prisma.post.findMany({
     where: {
+      userId,
       status: "pending",
     },
     orderBy: {
@@ -136,9 +147,10 @@ export async function getUpcomingPosts(): Promise<Post[]> {
   return posts;
 }
 
-export async function getRecentPosts(): Promise<Post[]> {
+export async function getRecentPosts(userId: string): Promise<Post[]> {
   const posts = await prisma.post.findMany({
     where: {
+      userId,
       status: "posted",
     },
     orderBy: {

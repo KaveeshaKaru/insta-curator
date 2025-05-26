@@ -2,16 +2,30 @@
 import { CalendarClock, Grid3X3, ImageIcon, Instagram } from "lucide-react"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
+import { redirect } from "next/navigation"
+import { headers } from "next/headers"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getDashboardStats, getUpcomingPosts, getRecentPosts } from "@/lib/dashboard.service"
 import { PostTabs } from "@/components/dashboard/PostTabs"
+import { auth } from "@/lib/auth"
 
 export default async function DashboardPage() {
-  const stats = await getDashboardStats();
-  const upcomingPosts = await getUpcomingPosts();
-  const recentPosts = await getRecentPosts();
+  const headersList = await headers();
+  const session = await auth.api.getSession({ 
+    headers: new Headers({
+      cookie: headersList.get('cookie') || ''
+    })
+  });
+  
+  if (!session?.user?.id) {
+    redirect("/auth/login");
+  }
+
+  const stats = await getDashboardStats(session.user.id);
+  const upcomingPosts = await getUpcomingPosts(session.user.id);
+  const recentPosts = await getRecentPosts(session.user.id);
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-6">
