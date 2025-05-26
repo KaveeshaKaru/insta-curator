@@ -111,12 +111,12 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen w-full bg-white">
       <Navbar />
 
       {/* Hero Section */}
-      <div id="hero" className="pt-24 pb-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-[90rem] mx-auto">
+      <div id="hero" className="pt-24 pb-12 px-4 sm:px-6 lg:px-8 w-full">
+        <div className="max-w-[90rem] mx-auto w-full">
           <div className="flex flex-col lg:grid lg:grid-cols-2 lg:gap-12 lg:items-start">
             {/* Left Column - Text */}
             <div className="relative lg:sticky lg:top-8 flex flex-col justify-center h-full">

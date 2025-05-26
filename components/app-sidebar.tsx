@@ -28,7 +28,7 @@ const menuCategories = {
   main: [
     { title: "Dashboard", href: "/dashboard", icon: Home },
     { title: "Images", href: "/images", icon: LucideImage },
-    { title: "Series", href: "/series", icon: Grid3X3 },
+    // { title: "Series", href: "/series", icon: Grid3X3 },
     { title: "Schedule", href: "/schedule", icon: Calendar },
     { title: "Posts", href: "/posts", icon: BookImage },
   ],
