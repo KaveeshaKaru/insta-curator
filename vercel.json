@@ -2,15 +2,6 @@
   "functions": {
     "app/api/instagram/post/route.ts": {
       "maxDuration": 60
-    },
-    "app/api/scheduler/cron/route.ts": {
-      "maxDuration": 300
     }
-  },
-  "crons": [
-    {
-      "path": "/api/scheduler/cron",
-      "schedule": "0 1 * * *"
-    }
-  ]
+  }
 } 
