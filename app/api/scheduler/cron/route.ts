@@ -3,7 +3,7 @@ import { scheduler } from "@/lib/scheduler";
 import prisma from "@/lib/prisma";
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // 5 minutes max execution time
+export const maxDuration = 60; // 1 minute max execution time
 
 // This endpoint will be triggered by cron service
 export async function GET(req: NextRequest) {
