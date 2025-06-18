@@ -14,6 +14,7 @@ interface Post {
   scheduledAt: Date;
   postedAt: Date | null;
   isCarousel: boolean;
+  caption: string | null;
   series: {
     name: string;
   } | null;
@@ -63,7 +64,7 @@ export function PostTabs({ upcomingPosts, recentPosts }: PostTabsProps) {
                   </div>
                 </CardContent>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">{post.series?.name || "Untitled Post"}</CardTitle>
+                  <CardTitle className="text-lg">{post.caption || "Untitled Post"}</CardTitle>
                   <CardDescription className="text-sm">
                     Scheduled for {format(new Date(post.scheduledAt), "PPP 'at' p")}
                   </CardDescription>
@@ -118,7 +119,7 @@ export function PostTabs({ upcomingPosts, recentPosts }: PostTabsProps) {
                   </div>
                 </CardContent>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">{post.series?.name || "Untitled Post"}</CardTitle>
+                  <CardTitle className="text-lg">{post.caption || "Untitled Post"}</CardTitle>
                   <CardDescription className="text-sm">
                     Posted {formatDistanceToNow(new Date(post.postedAt!), { addSuffix: true })}
                   </CardDescription>

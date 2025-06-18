@@ -6,6 +6,7 @@ interface Post {
   scheduledAt: Date;
   postedAt: Date | null;
   isCarousel: boolean;
+  caption: string | null;
   series: {
     name: string;
   } | null;
@@ -122,7 +123,12 @@ export async function getUpcomingPosts(userId: string): Promise<Post[]> {
       scheduledAt: "asc",
     },
     take: 3,
-    include: {
+    select: {
+      id: true,
+      scheduledAt: true,
+      postedAt: true,
+      isCarousel: true,
+      caption: true,
       series: {
         select: {
           name: true,
@@ -157,7 +163,12 @@ export async function getRecentPosts(userId: string): Promise<Post[]> {
       postedAt: "desc",
     },
     take: 3,
-    include: {
+    select: {
+      id: true,
+      scheduledAt: true,
+      postedAt: true,
+      isCarousel: true,
+      caption: true,
       series: {
         select: {
           name: true,
